@@ -84,7 +84,6 @@ model MedicineCart {
   medicine    Medicine  @relation(fields: [medicineId], references: [id])
   medicineId  Int
   quantity    Int
-  isRequested Boolean   @default(false)
   addedAt     DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
