@@ -99,6 +99,7 @@ model MedicineRequestor {
   medicine    Medicine      @relation(fields: [medicineId], references: [id])
   medicineId  Int
   quantity    Int
+  Reason      String
   status      RequestStatus @default(REQUESTED)
   requestedAt DateTime      @default(now())
   approvedAt  DateTime?
