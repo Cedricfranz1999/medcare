@@ -1,5 +1,11 @@
 import { postRouter } from "~/server/api/routers/post";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
+import { authRouter } from "./routers/auth";
+import { medicineRouterCategory } from "./routers/medicineCategory";
+import { medicineRouter } from "./routers/medicine";
+import { medicineRecommendationRouter } from "./routers/medicineRecommendation";
+import { usersRouter } from "./routers/users";
+import { medicineRequestsRouter } from "./routers/request";
 
 /**
  * This is the primary router for your server.
@@ -8,6 +14,12 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   post: postRouter,
+  auth: authRouter,
+  medicineRouterCategory: medicineRouterCategory,
+  medicine: medicineRouter,
+  medicineRecommendation: medicineRecommendationRouter,
+  user: usersRouter,
+  medicineReqeust: medicineRequestsRouter,
 });
 
 // export type definition of API

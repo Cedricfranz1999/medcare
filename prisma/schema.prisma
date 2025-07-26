@@ -12,7 +12,7 @@ model Admin {
   id        Int      @id @default(autoincrement())
   name      String   @default("ADMIN")
   username  String   @unique
-  password  DateTime @default(now())
+  password  String   
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 }
@@ -24,6 +24,7 @@ model user {
   name          String
   middleName    String?
   lastName      String?
+  image         String?
   DateOfBirth   String
   age           String?
   address       String?
@@ -51,66 +52,81 @@ model Medicine {
   stock        Int       
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
+  recommended  Boolean            @default(false)
 
-  categoryId   Int?
-  category     MedicineCategory?  @relation(fields: [categoryId], references: [id])
-
+  categories   MedicineCategoryOnMedicine[]
   carts        MedicineCart[]
-  requests     MedicineRequestor[]
-  uses         MedicineUse[]      @relation("MedicineToUse")
+  requestItems MedicineRequestItem[] 
 
   @@index([name])
   @@index([brand])
   @@index([type])
-  @@index([categoryId])
 }
 
-model MedicineUse {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique
-  medicines   Medicine[]  @relation("MedicineToUse")
-}
 
 model MedicineCategory {
-  id         Int        @id @default(autoincrement())
-  name       String     @unique
-  medicines  Medicine[]
+  id         Int                        @id @default(autoincrement())
+  name       String                     @unique
+  medicines  MedicineCategoryOnMedicine[]
 }
 
+model MedicineCategoryOnMedicine {
+  medicine   Medicine         @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  medicineId Int
+  category   MedicineCategory @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  assignedAt DateTime         @default(now())
+
+  @@id([medicineId, categoryId])
+}
+
+
 model MedicineCart {
-  id          Int       @id @default(autoincrement())
-  user        user      @relation(fields: [userId], references: [id])
-  userId      Int
-  medicine    Medicine  @relation(fields: [medicineId], references: [id])
-  medicineId  Int
-  quantity    Int
-  addedAt     DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         Int       @id @default(autoincrement())
+  user       user      @relation(fields: [userId], references: [id])
+  userId     Int
+  medicine   Medicine  @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  medicineId Int
+  quantity   Int
+  addedAt    DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([userId])
   @@index([medicineId])
 }
 
 model MedicineRequestor {
-  id          Int           @id @default(autoincrement())
-  user        user          @relation(fields: [userId], references: [id])
-  userId      Int
-  medicine    Medicine      @relation(fields: [medicineId], references: [id])
-  medicineId  Int
-  quantity    Int
-  reason      String
-  status      RequestStatus @default(REQUESTED)
-  requestedAt DateTime      @default(now())
-  approvedAt  DateTime?
-  givenAt     DateTime?
+  id              Int                     @id @default(autoincrement())
+  user            user                    @relation(fields: [userId], references: [id])
+  userId          Int
+  reason          String
+  status          RequestStatus           @default(REQUESTED)
+  requestedAt     DateTime                @default(now())
+  approvedAt      DateTime?
+  givenAt         DateTime?
   cancelledReason String?
-  updatedAt   DateTime      @updatedAt
-  createdAt   DateTime      @default(now())
+  updatedAt       DateTime                @updatedAt
+  createdAt       DateTime                @default(now())
+
+  medicines       MedicineRequestItem[]   // <-- new relation
 
   @@index([userId])
-  @@index([medicineId])
   @@index([status])
 }
+
+model MedicineRequestItem {
+  id         Int                @id @default(autoincrement())
+  request    MedicineRequestor @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  requestId  Int
+  medicine   Medicine          @relation(fields: [medicineId], references: [id], onDelete: Cascade)
+  medicineId Int
+  quantity   Int
+
+  @@index([requestId])
+  @@index([medicineId])
+  @@unique([requestId, medicineId])
+}
+
 
 enum MedicineType {
   OTC
