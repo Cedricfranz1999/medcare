@@ -68,6 +68,7 @@ model MedicineCategory {
   id         Int                        @id @default(autoincrement())
   name       String                     @unique
   medicines  MedicineCategoryOnMedicine[]
+  createdAt    DateTime?           @default(now())
 }
 
 model MedicineCategoryOnMedicine {

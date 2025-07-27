@@ -381,7 +381,7 @@ const MedicinesPage = () => {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-gray-50/80 hover:bg-gray-50">
+                  <TableRow className="border-gray-300 bg-gray-50/80 hover:bg-gray-50">
                     <TableHead className="font-semibold text-gray-700">
                       Image
                     </TableHead>
@@ -412,7 +412,7 @@ const MedicinesPage = () => {
                   {data?.data.map((medicine, index) => (
                     <TableRow
                       key={medicine.id}
-                      className="animate-in slide-in-from-left-5 transition-all duration-200 hover:bg-gray-50/50"
+                      className="animate-in slide-in-from-left-5 border-gray-300 transition-all duration-200 hover:bg-gray-50/50"
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
                       <TableCell>

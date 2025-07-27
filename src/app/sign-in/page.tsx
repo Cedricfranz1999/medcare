@@ -30,7 +30,7 @@ const SignInPage = () => {
         description: "Succesfully Login",
         variant: "success",
       });
-      router.push("/admin");
+      router.push("/admin/dashboard");
     },
     onError: (data) => {
       toast({
@@ -70,7 +70,7 @@ const SignInPage = () => {
         <motion.img
           src="logo.png"
           alt="MEDCARE Admin Logo"
-          className="mx-auto mb-6 h-32 w-32 rounded-2xl border-4 border-white object-contain shadow-lg"
+          className="mb-6 rounded-2xl border-4 border-white object-contain shadow-lg"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{
@@ -86,9 +86,7 @@ const SignInPage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.5 }}
-        >
-          Admin Sign In
-        </motion.h2>
+        ></motion.h2>
         <motion.form
           onSubmit={handleSubmit(onSubmit)}
           className="flex flex-col gap-5"

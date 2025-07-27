@@ -1,0 +1,682 @@
+"use client";
+import type React from "react";
+import { useState } from "react";
+import { useToast } from "~/components/ui/use-toast";
+import { api } from "~/trpc/react";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
+import { Skeleton } from "~/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
+import { Label } from "~/components/ui/label";
+import { Textarea } from "~/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import { Calendar } from "~/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
+import { cn } from "~/lib/utils";
+import { format } from "date-fns";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+} from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "~/components/ui/chart";
+import {
+  Download,
+  CalendarIcon,
+  Search,
+  Plus,
+  Package,
+  AlertTriangle,
+  FileText,
+  Loader2,
+} from "lucide-react";
+
+interface Medicine {
+  id: number;
+  name: string;
+  brand: string;
+  description: string | null;
+  type: string;
+  dosageForm: string;
+  size: string | null;
+  stock: number;
+  recommended: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface MedicineRequest {
+  id: number;
+  reason: string;
+  status: string;
+  requestedAt: Date;
+  user: {
+    name: string;
+    username: string;
+  };
+  medicines: {
+    id: number;
+    quantity: number;
+    medicine: Medicine;
+  }[];
+}
+
+const MedicineReportsPage = () => {
+  const { toast } = useToast();
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(
+    null,
+  );
+  const [dateRange, setDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
+    from: undefined,
+    to: undefined,
+  });
+  const [stockFilter, setStockFilter] = useState<"all" | "low" | "out">("all");
+
+  const pageSize = 10;
+
+  // Fetch medicines with filters
+  const {
+    data: medicinesData,
+    refetch: refetchMedicines,
+    isLoading: medicinesLoading,
+  } = api.reporstData.getMedicines.useQuery({
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    search,
+    stockFilter,
+    dateFrom: dateRange.from,
+    dateTo: dateRange.to,
+  });
+
+  // Fetch medicine requests
+  const { data: requestsData, refetch: refetchRequests } =
+    api.reporstData.getRequests.useQuery({
+      dateFrom: dateRange.from,
+      dateTo: dateRange.to,
+    });
+
+  // Fetch chart data
+  const { data: chartData } = api.reporstData.getChartData.useQuery({
+    dateFrom: dateRange.from,
+    dateTo: dateRange.to,
+  });
+
+  // Request medicine mutation
+  const requestMutation = api.reporstData.requestMedicine.useMutation({
+    onSuccess: () => {
+      toast({
+        title: "✅ Success!",
+        description: "Medicine request submitted successfully",
+        variant: "default",
+      });
+      setRequestDialogOpen(false);
+      setSelectedMedicine(null);
+      refetchRequests();
+    },
+    onError: (error) => {
+      toast({
+        title: "❌ Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Export CSV mutation
+  const exportMutation = api.reporstData.exportCSV.useMutation({
+    onSuccess: (data) => {
+      const blob = new Blob([data.csv], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `medicine-inventory-${format(new Date(), "yyyy-MM-dd")}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({
+        title: "📊 Export Complete",
+        description: "CSV file downloaded successfully",
+        variant: "default",
+      });
+    },
+  });
+
+  const handleExportCSV = () => {
+    exportMutation.mutate({
+      search,
+      stockFilter,
+      dateFrom: dateRange.from,
+      dateTo: dateRange.to,
+    });
+  };
+
+  const handleRequestSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedMedicine) return;
+
+    const formData = new FormData(e.currentTarget);
+    requestMutation.mutate({
+      medicineId: selectedMedicine.id,
+      quantity: Number.parseInt(formData.get("quantity") as string),
+      reason: formData.get("reason") as string,
+      userId: 1, // Replace with actual user ID from auth
+    });
+  };
+
+  const lowStockCount =
+    medicinesData?.data.filter((m) => m.stock <= 10).length || 0;
+  const outOfStockCount =
+    medicinesData?.data.filter((m) => m.stock === 0).length || 0;
+
+  // Improved chart configuration with vibrant colors
+  const chartConfig = {
+    stock: {
+      label: "Stock Level",
+      color: "#3b82f6", // Bright blue
+    },
+    requests: {
+      label: "Requests",
+      color: "#10b981", // Emerald green
+    },
+  };
+
+  // Vibrant color palette for pie chart
+  const pieColors = [
+    "#3b82f6", // Blue
+    "#10b981", // Emerald
+    "#f59e0b", // Amber
+    "#ef4444", // Red
+    "#8b5cf6", // Violet
+    "#06b6d4", // Cyan
+    "#84cc16", // Lime
+    "#f97316", // Orange
+    "#ec4899", // Pink
+    "#6366f1", // Indigo
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="container mx-auto space-y-6 p-6">
+        {/* Header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Medicine Reports
+            </h1>
+            <p className="text-gray-600">Inventory management and analytics</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleExportCSV}
+              disabled={exportMutation.isPending}
+              variant="outline"
+              className="flex items-center gap-2 bg-transparent"
+            >
+              {exportMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              Export CSV
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Medicines
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {medicinesData?.total || 0}
+                  </p>
+                </div>
+                <Package className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Low Stock</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {lowStockCount}
+                  </p>
+                </div>
+                <AlertTriangle className="h-8 w-8 text-orange-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">
+                    Out of Stock
+                  </p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {outOfStockCount}
+                  </p>
+                </div>
+                <AlertTriangle className="h-8 w-8 text-red-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Requests
+                  </p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {requestsData?.length || 0}
+                  </p>
+                </div>
+                <FileText className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts */}
+        {chartData && (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+              <CardHeader>
+                <CardTitle>Stock Levels by Medicine</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData.stockChart}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fill: "#64748b", fontSize: 12 }}
+                        axisLine={{ stroke: "#cbd5e1" }}
+                      />
+                      <YAxis
+                        tick={{ fill: "#64748b", fontSize: 12 }}
+                        axisLine={{ stroke: "#cbd5e1" }}
+                      />
+                      <ChartTooltip
+                        content={<ChartTooltipContent />}
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                      />
+                      <Bar
+                        dataKey="stock"
+                        fill={chartConfig.stock.color}
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+              <CardHeader>
+                <CardTitle>Medicine Types Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartData.typeChart}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        fill="##453cf3"
+                        className="bg-[#453cf3]"
+                        dataKey="count"
+                        label={({ name, value }) => `${name}: ${value}`}
+                        labelLine={false}
+                        style={{ fontSize: "12px", fill: "#f97316" }}
+                      >
+                        {chartData.typeChart.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={pieColors[index % pieColors.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <ChartTooltip
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Filters */}
+        <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+          <CardContent className="p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 border-gray-300 text-gray-400" />
+                <Input
+                  placeholder="Search medicines..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="rounded-md border-gray-300 pl-10 shadow-sm drop-shadow-sm"
+                />
+              </div>
+              <Select
+                value={stockFilter}
+                onValueChange={(value: "all" | "low" | "out") =>
+                  setStockFilter(value)
+                }
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Filter by stock" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Stock</SelectItem>
+                  <SelectItem value="low">Low Stock (≤10)</SelectItem>
+                  <SelectItem value="out">Out of Stock</SelectItem>
+                </SelectContent>
+              </Select>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal sm:w-[280px]",
+                      !dateRange.from && "text-muted-foreground",
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "LLL dd, y")} -{" "}
+                          {format(dateRange.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "LLL dd, y")
+                      )
+                    ) : (
+                      <span>Pick a date range</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto bg-white p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange.from}
+                    selected={dateRange}
+                    onSelect={(range) =>
+                      setDateRange(
+                        range || ({ from: undefined, to: undefined } as any),
+                      )
+                    }
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Medicine Inventory Table */}
+        <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+          <CardHeader>
+            <CardTitle>Medicine Inventory</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {medicinesLoading ? (
+              <div className="space-y-3">
+                {Array(5)
+                  .fill(0)
+                  .map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-300">
+                      <TableHead>Medicine</TableHead>
+                      <TableHead>Brand</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Stock</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {medicinesData?.data.map((medicine) => (
+                      <TableRow key={medicine.id} className="border-gray-300">
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{medicine.name}</div>
+                            <div className="text-sm text-gray-500">
+                              {medicine.dosageForm}{" "}
+                              {medicine.size && `- ${medicine.size}`}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{medicine.brand}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{medicine.type}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={cn(
+                              "font-medium",
+                              medicine.stock === 0
+                                ? "text-red-600"
+                                : medicine.stock <= 10
+                                  ? "text-orange-600"
+                                  : "text-green-600",
+                            )}
+                          >
+                            {medicine.stock}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              medicine.stock === 0
+                                ? "destructive"
+                                : medicine.stock <= 10
+                                  ? "secondary"
+                                  : "default"
+                            }
+                          >
+                            {medicine.stock === 0
+                              ? "Out of Stock"
+                              : medicine.stock <= 10
+                                ? "Low Stock"
+                                : "In Stock"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedMedicine(medicine);
+                              setRequestDialogOpen(true);
+                            }}
+                            disabled={medicine.stock === 0}
+                          >
+                            <Plus className="mr-1 h-4 w-4" />
+                            Request
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Requests */}
+        <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+          <CardHeader>
+            <CardTitle>Recent Medicine Requests</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {requestsData?.slice(0, 5).map((request) => (
+                <div
+                  key={request.id}
+                  className="flex items-center justify-between border-b pb-4"
+                >
+                  <div>
+                    <div className="font-medium">{request.user.name}</div>
+                    <div className="text-sm text-gray-500">
+                      {request.reason}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {format(new Date(request.requestedAt), "MMM dd, yyyy")}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Badge
+                      variant={
+                        request.status === "GIVEN"
+                          ? "default"
+                          : request.status === "CANCELLED"
+                            ? "destructive"
+                            : "secondary"
+                      }
+                    >
+                      {request.status}
+                    </Badge>
+                    <div className="mt-1 text-sm text-gray-500">
+                      {request.medicines.length} item(s)
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Request Medicine Dialog */}
+        <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Request Medicine</DialogTitle>
+              <DialogDescription>
+                Submit a request for {selectedMedicine?.name}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleRequestSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="quantity">Quantity</Label>
+                <Input
+                  id="quantity"
+                  name="quantity"
+                  type="number"
+                  min="1"
+                  max={selectedMedicine?.stock || 1}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="reason">Reason</Label>
+                <Textarea
+                  id="reason"
+                  name="reason"
+                  placeholder="Please provide a reason for this request..."
+                  required
+                />
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setRequestDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={requestMutation.isPending}>
+                  {requestMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Request"
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
+};
+
+export default MedicineReportsPage;
