@@ -275,7 +275,7 @@ const MedicineCategoriesPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br">
-      <div className="container mx-auto space-y-4 p-4 sm:space-y-6 sm:p-6">
+      <div className="space-y-4 sm:space-y-6">
         <Card className="min-h-[700px] border-0 bg-white shadow-xl backdrop-blur-sm transition-all duration-300 hover:shadow-2xl">
           <CardHeader className="px-4 pt-4 pb-4 sm:px-6 sm:pt-6 sm:pb-6">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -285,7 +285,9 @@ const MedicineCategoriesPage = () => {
                 </div>
                 <div>
                   <CardTitle className="bg-gradient-to-r from-[#0ca4d4] to-[#0891b2] bg-clip-text text-2xl font-bold text-transparent sm:text-3xl">
-                    Medicine Categories
+                    <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-4xl font-bold text-[#0ca4d4] sm:text-5xl">
+                      Medicine Categories
+                    </h1>{" "}
                   </CardTitle>
                   <p className="mt-1 text-sm text-gray-500">
                     Organize your medicine inventory

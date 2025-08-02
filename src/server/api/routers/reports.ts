@@ -1,3 +1,4 @@
+// medicineReports.ts (router)
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
@@ -197,7 +198,7 @@ export const medicineReportsRouter = createTRPCRouter({
       return { success: true, requestId: request.id };
     }),
 
-  exportCSV: publicProcedure
+  exportMedicinesCSV: publicProcedure
     .input(
       z.object({
         search: z.string().optional(),
@@ -267,6 +268,88 @@ export const medicineReportsRouter = createTRPCRouter({
             medicine.updatedAt.toISOString(),
           ].join(","),
         ),
+      ];
+
+      return { csv: csvRows.join("\n") };
+    }),
+
+  exportRequestsCSV: publicProcedure
+    .input(
+      z.object({
+        dateFrom: z.date().optional(),
+        dateTo: z.date().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const whereConditions: any = {};
+
+      if (input.dateFrom || input.dateTo) {
+        whereConditions.requestedAt = {};
+        if (input.dateFrom) {
+          whereConditions.requestedAt.gte = input.dateFrom;
+        }
+        if (input.dateTo) {
+          whereConditions.requestedAt.lte = input.dateTo;
+        }
+      }
+
+      const requests = await ctx.db.medicineRequestor.findMany({
+        where: whereConditions,
+        include: {
+          user: {
+            select: {
+              name: true,
+              username: true,
+            },
+          },
+          medicines: {
+            include: {
+              medicine: true,
+            },
+          },
+        },
+        orderBy: { requestedAt: "desc" },
+      });
+
+      // Generate CSV
+      const headers = [
+        "Request ID",
+        "Requested By",
+        "Username",
+        "Reason",
+        "Status",
+        "Requested At",
+        "Approved At",
+        "Given At",
+        "Medicine Count",
+        "Medicine Names",
+        "Quantities",
+      ];
+
+      const csvRows = [
+        headers.join(","),
+        ...requests.map((request) => {
+          const medicineNames = request.medicines
+            .map((item) => item.medicine.name)
+            .join("; ");
+          const quantities = request.medicines
+            .map((item) => item.quantity)
+            .join("; ");
+
+          return [
+            request.id,
+            `"${request.user.name}"`,
+            `"${request.user.username}"`,
+            `"${request.reason}"`,
+            request.status,
+            request.requestedAt.toISOString(),
+            request.approvedAt ? request.approvedAt.toISOString() : "",
+            request.givenAt ? request.givenAt.toISOString() : "",
+            request.medicines.length,
+            `"${medicineNames}"`,
+            `"${quantities}"`,
+          ].join(",");
+        }),
       ];
 
       return { csv: csvRows.join("\n") };

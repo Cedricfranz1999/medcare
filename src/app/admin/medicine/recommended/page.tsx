@@ -158,15 +158,15 @@ const MedicineRecommendationsPage = () => {
   const totalPages = Math.ceil((data?.totalCount || 0) / pageSize);
 
   return (
-    <div className="animate-in fade-in slide-in-from-top-8 container mx-auto space-y-6 p-6 duration-700">
+    <div className="animate-in fade-in slide-in-from-top-8 space-y-6 duration-700">
       <Card className="bg-white p-10">
         <div className="animate-in fade-in slide-in-from-top-8 duration-700">
           <div className="mb-8 flex items-center space-x-4">
-            <div className="w-fit rounded-2xl bg-gradient-to-br from-yellow-400 to-yellow-300 p-4 shadow-lg">
+            <div className="w-fit rounded-2xl bg-[#0ca4d4] p-4 shadow-lg">
               <Star className="h-10 w-10 text-white" />
             </div>
-            <h1 className="bg-clip-text text-4xl font-bold text-[#0ca4d4]">
-              Medicine Recommendations
+            <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-4xl font-bold text-[#0ca4d4] sm:text-5xl">
+              Medicine Recommendation
             </h1>
           </div>
 
@@ -409,7 +409,7 @@ const MedicineRecommendationsPage = () => {
                                   disabled={toggleRecommendedMutation.isPending}
                                   className={`gap-2 rounded-lg font-medium transition-all duration-200 ${
                                     medicine.recommended
-                                      ? "bg-yellow-600"
+                                      ? "bg-[#0ca4d4]"
                                       : "border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
                                   }`}
                                 >

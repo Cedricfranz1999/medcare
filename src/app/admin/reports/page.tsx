@@ -1,3 +1,4 @@
+// MedicineReportsPage.tsx (component)
 "use client";
 import type React from "react";
 import { useState } from "react";
@@ -87,6 +88,8 @@ interface MedicineRequest {
   reason: string;
   status: string;
   requestedAt: Date;
+  approvedAt: Date | null;
+  givenAt: Date | null;
   user: {
     name: string;
     username: string;
@@ -165,30 +168,58 @@ const MedicineReportsPage = () => {
     },
   });
 
-  // Export CSV mutation
-  const exportMutation = api.reporstData.exportCSV.useMutation({
+  // Export medicines CSV mutation
+  const exportMedicinesMutation =
+    api.reporstData.exportMedicinesCSV.useMutation({
+      onSuccess: (data) => {
+        const blob = new Blob([data.csv], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `medicine-inventory-${format(new Date(), "yyyy-MM-dd")}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast({
+          title: "📊 Export Complete",
+          description: "Medicine inventory CSV downloaded successfully",
+          variant: "default",
+        });
+      },
+    });
+
+  // Export requests CSV mutation
+  const exportRequestsMutation = api.reporstData.exportRequestsCSV.useMutation({
     onSuccess: (data) => {
       const blob = new Blob([data.csv], { type: "text/csv" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `medicine-inventory-${format(new Date(), "yyyy-MM-dd")}.csv`;
+      a.download = `medicine-requests-${format(new Date(), "yyyy-MM-dd")}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       toast({
         title: "📊 Export Complete",
-        description: "CSV file downloaded successfully",
+        description: "Medicine requests CSV downloaded successfully",
         variant: "default",
       });
     },
   });
 
-  const handleExportCSV = () => {
-    exportMutation.mutate({
+  const handleExportMedicinesCSV = () => {
+    exportMedicinesMutation.mutate({
       search,
       stockFilter,
+      dateFrom: dateRange.from,
+      dateTo: dateRange.to,
+    });
+  };
+
+  const handleExportRequestsCSV = () => {
+    exportRequestsMutation.mutate({
       dateFrom: dateRange.from,
       dateTo: dateRange.to,
     });
@@ -239,29 +270,42 @@ const MedicineReportsPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-white bg-gradient-to-br">
       <div className="container mx-auto space-y-6 p-6">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-4xl font-bold text-[#0ca4d4] sm:text-5xl">
               Medicine Reports
             </h1>
             <p className="text-gray-600">Inventory management and analytics</p>
           </div>
           <div className="flex gap-2">
             <Button
-              onClick={handleExportCSV}
-              disabled={exportMutation.isPending}
+              onClick={handleExportMedicinesCSV}
+              disabled={exportMedicinesMutation.isPending}
               variant="outline"
               className="flex items-center gap-2 bg-transparent"
             >
-              {exportMutation.isPending ? (
+              {exportMedicinesMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Download className="h-4 w-4" />
               )}
-              Export CSV
+              Export Medicines
+            </Button>
+            <Button
+              onClick={handleExportRequestsCSV}
+              disabled={exportRequestsMutation.isPending}
+              variant="outline"
+              className="flex items-center gap-2 bg-transparent"
+            >
+              {exportRequestsMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              Export Requests
             </Button>
           </div>
         </div>
@@ -374,7 +418,10 @@ const MedicineReportsPage = () => {
                 <CardTitle>Medicine Types Distribution</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px]">
+                <ChartContainer
+                  config={chartConfig}
+                  className="h-[300px] bg-red-200"
+                >
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -507,7 +554,6 @@ const MedicineReportsPage = () => {
                       <TableHead>Type</TableHead>
                       <TableHead>Stock</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -556,19 +602,6 @@ const MedicineReportsPage = () => {
                                 ? "Low Stock"
                                 : "In Stock"}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setSelectedMedicine(medicine);
-                              setRequestDialogOpen(true);
-                            }}
-                            disabled={medicine.stock === 0}
-                          >
-                            <Plus className="mr-1 h-4 w-4" />
-                            Request
-                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}

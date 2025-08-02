@@ -97,11 +97,11 @@ const DashboardPage = () => {
   ];
 
   return (
-    <div className="min-h-[700px] rounded-md bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="fade min-h-[700px] rounded-md bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="container px-4 py-6 sm:px-6 lg:px-8">
         {/* Header Section */}
         <div className="mb-8 text-center">
-          <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-4xl font-bold text-transparent sm:text-5xl">
+          <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-4xl font-bold text-[#0ca4d4] sm:text-5xl">
             Dashboard Overview
           </h1>
           <p className="mt-2 text-lg text-slate-600">
@@ -110,7 +110,7 @@ const DashboardPage = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="mx-auto max-w-7xl">
+        <div className="fadeInDown 1s forwards mx-auto max-w-7xl ease-out">
           {dashboardData.isLoading ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -157,10 +157,12 @@ const DashboardPage = () => {
                       <div className="mb-2 text-2xl font-bold text-slate-800 sm:text-3xl">
                         {stat.value.toLocaleString()}
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <TrendingUp className="h-3 w-3 text-emerald-500" />
-                        <p className="text-xs text-slate-600 sm:text-sm">
-                          <span className="font-medium text-emerald-600">
+                      <div
+                        className={`flex items-center space-x-1 rounded-md ${stat.change !== 0 ? "bg-red-400 py-1 text-white" : "bg-white"} `}
+                      >
+                        <TrendingUp className="h-3 w-3 text-white" />
+                        <p className="text-xs text-white sm:text-sm">
+                          <span className="font-medium text-white">
                             +{stat.change}
                           </span>{" "}
                           today

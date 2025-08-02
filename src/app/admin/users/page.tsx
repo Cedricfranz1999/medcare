@@ -173,14 +173,14 @@ const UsersPage = () => {
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-top-8 container mx-auto space-y-6 p-6 duration-700">
+    <div className="animate-in fade-in slide-in-from-top-8 space-y-6 duration-700">
       <Card className="bg-white p-10">
         <div className="animate-in fade-in slide-in-from-top-8 duration-700">
           <div className="mb-8 flex items-center space-x-4">
             <div className="w-fit rounded-2xl bg-gradient-to-br from-blue-400 to-blue-500 p-4 shadow-lg">
               <User className="h-10 w-10 text-white" />
             </div>
-            <h1 className="bg-clip-text text-4xl font-bold text-[#0ca4d4]">
+            <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-4xl font-bold text-[#0ca4d4] sm:text-5xl">
               User Management
             </h1>
           </div>

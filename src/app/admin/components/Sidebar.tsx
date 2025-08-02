@@ -33,7 +33,7 @@ const Sidebar = () => {
     <div className="hidden bg-gradient-to-b from-[#0ac2de] via-[#0fa7d1] to-[#156cbc] md:block">
       <div className="flex h-full max-h-screen flex-col gap-2">
         <div className="flex h-14 items-center border-b border-white/20 px-4 lg:h-[60px] lg:px-6">
-          <Label className="text-xl font-bold text-white">MEDCARE</Label>
+          <Label className="text-xl font-bold text-white">CareMeds</Label>
         </div>
         <div className="mt-6 flex-1">
           <nav className="grid items-start px-2 text-sm font-medium lg:px-4">

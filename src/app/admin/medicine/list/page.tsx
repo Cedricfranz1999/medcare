@@ -96,6 +96,7 @@ const MedicinesPage = () => {
       | "CREAM"
       | "DROPS";
     size?: string;
+    expiryDate?: Date | string;
     stock: number;
     categoryIds?: number[];
     image?: string;
@@ -154,6 +155,8 @@ const MedicinesPage = () => {
       type: medicine.type,
       dosageForm: medicine.dosageForm,
       size: medicine.size || "",
+      expiryDate: medicine.expiryDate || undefined,
+
       stock: medicine.stock,
       categoryIds: medicine.categories?.map((c: any) => c.categoryId) || [],
       image: medicine.image || undefined,
@@ -297,14 +300,16 @@ const MedicinesPage = () => {
   );
 
   return (
-    <div className="animate-in fade-in slide-in-from-top-8 container mx-auto space-y-6 p-6 duration-700">
-      <Card className="min-h-[800px] rounded-xl border-0 bg-white shadow-lg transition-all duration-300 hover:shadow-xl">
+    <div className="animate-in fade-in slide-in-from-top-8 bg-r rounded-md duration-700">
+      <Card className="min-h-[800px] rounded-md border-0 bg-white shadow-lg transition-all duration-300 hover:shadow-xl">
         <CardHeader className="pb-6">
           <CardTitle className="flex items-center gap-3 text-3xl font-bold text-[#0ca4d4]">
             <div className="rounded-lg bg-[#0ca4d4]/10 p-2">
               <Package className="h-8 w-8 text-[#0ca4d4]" />
             </div>
-            Medicine Inventory
+            <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-4xl font-bold text-[#0ca4d4] sm:text-5xl">
+              Medicine List
+            </h1>{" "}
           </CardTitle>
         </CardHeader>
 
@@ -401,6 +406,10 @@ const MedicinesPage = () => {
                       Stock
                     </TableHead>
                     <TableHead className="font-semibold text-gray-700">
+                      Expiry Date
+                    </TableHead>
+
+                    <TableHead className="font-semibold text-gray-700">
                       Categories
                     </TableHead>
                     <TableHead className="text-right font-semibold text-gray-700">
@@ -469,6 +478,21 @@ const MedicinesPage = () => {
                         >
                           {medicine.stock}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        {medicine.expiryDate ? (
+                          <span
+                            className={
+                              new Date(medicine.expiryDate) < new Date()
+                                ? "font-semibold text-red-600"
+                                : ""
+                            }
+                          >
+                            {new Date(medicine.expiryDate).toLocaleDateString()}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">N/A</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
@@ -797,6 +821,27 @@ const MedicinesPage = () => {
                     required
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label
+                  htmlFor="expiryDate"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Expiry Date
+                </Label>
+                <Input
+                  id="expiryDate"
+                  name="expiryDate"
+                  type="date"
+                  defaultValue={
+                    editingMedicine?.expiryDate
+                      ? new Date(editingMedicine.expiryDate)
+                          .toISOString()
+                          .split("T")[0]
+                      : ""
+                  }
+                  className="border-gray-300 transition-all duration-200 focus:border-[#0ca4d4] focus:ring-[#0ca4d4]"
+                />
               </div>
 
               {/* Categories */}
