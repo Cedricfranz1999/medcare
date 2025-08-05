@@ -15,50 +15,55 @@ const randomEnumValue = <T extends Record<string, string>>(
 ): T[keyof T] => {
   const values = Object.values(enumObj) as T[keyof T][];
   const randomIndex = Math.floor(Math.random() * values.length);
-  return values[randomIndex]!; // Non-null assertion since we know index is valid
+  return values[randomIndex]!;
 };
 
 interface UserData {
   username: string;
-  password: Date;
+  password: string;
   name: string;
-  lastName: string;
+  middleName: string | null;
+  lastName: string | null;
   DateOfBirth: string;
+  age: string | null;
+  address: string | null;
+  contactNumber: string | null;
   status: UserStatus;
-  address: string;
-  contactNumber: string;
+  isAlreadyRegisteredIn0auth: boolean;
 }
 
 const generateUsers = (count: number): UserData[] => {
   return Array.from({ length: count }, (): UserData => {
     const birthDate = faker.date.birthdate({ min: 18, max: 80, mode: "age" });
-    const dateString = birthDate.toISOString().split("T")[0];
-
-    if (!dateString) {
-      throw new Error("Failed to generate birth date");
-    }
+    const dateString = birthDate.toISOString().split("T")[0]!;
+    const age = faker.number.int({ min: 18, max: 80 }).toString();
 
     return {
       username: faker.internet.userName().toLowerCase().replace(/\s/g, "_"),
-      password: new Date(),
+      password: faker.internet.password(),
       name: faker.person.firstName(),
-      lastName: faker.person.lastName(),
+      middleName: faker.datatype.boolean() ? faker.person.middleName() : null,
+      lastName: faker.datatype.boolean() ? faker.person.lastName() : null,
       DateOfBirth: dateString,
+      age: faker.datatype.boolean() ? age : null,
+      address: faker.datatype.boolean() ? faker.location.streetAddress() : null,
+      contactNumber: faker.datatype.boolean() ? faker.phone.number() : null,
       status: randomEnumValue(UserStatus),
-      address: faker.location.streetAddress(),
-      contactNumber: faker.phone.number(),
+      isAlreadyRegisteredIn0auth: faker.datatype.boolean(),
     };
   });
 };
+
 interface MedicineData {
   name: string;
   brand: string;
+  description: string | null;
   type: MedicineType;
   dosageForm: DosageForm;
+  size: string | null;
   stock: number;
-  description: string;
-  expiryDate: Date;
   recommended: boolean;
+  expiryDate: Date | null;
 }
 
 const generateMedicines = (count: number): MedicineData[] => {
@@ -67,20 +72,63 @@ const generateMedicines = (count: number): MedicineData[] => {
     (): MedicineData => ({
       name: faker.commerce.productName(),
       brand: faker.company.name(),
+      description: faker.datatype.boolean()
+        ? faker.commerce.productDescription()
+        : null,
       type: randomEnumValue(MedicineType),
       dosageForm: randomEnumValue(DosageForm),
+      size: faker.datatype.boolean()
+        ? `${faker.number.int({ min: 1, max: 100 })}${faker.helpers.arrayElement(["mg", "ml", "g"])}`
+        : null,
       stock: faker.number.int({ min: 10, max: 500 }),
-      description: faker.commerce.productDescription(),
-      expiryDate: faker.date.future({ years: 2 }),
       recommended: faker.datatype.boolean(),
+      expiryDate: faker.datatype.boolean()
+        ? faker.date.future({ years: 2 })
+        : null,
     }),
   );
+};
+
+interface MedicineRequestorData {
+  userId: number;
+  reason: string;
+  status: RequestStatus;
+  requestedAt: Date;
+  approvedAt: Date | null;
+  givenAt: Date | null;
+  cancelledReason: string | null;
+}
+
+const generateMedicineRequests = (
+  userId: number,
+  count: number,
+): MedicineRequestorData[] => {
+  return Array.from({ length: count }, (): MedicineRequestorData => {
+    const status = randomEnumValue(RequestStatus);
+    const requestedAt = faker.date.recent({ days: 30 });
+
+    return {
+      userId,
+      reason: faker.lorem.sentence(),
+      status,
+      requestedAt,
+      approvedAt:
+        status === "GIVEN"
+          ? faker.date.between({ from: requestedAt, to: new Date() })
+          : null,
+      givenAt:
+        status === "GIVEN"
+          ? faker.date.between({ from: requestedAt, to: new Date() })
+          : null,
+      cancelledReason: status === "CANCELLED" ? faker.lorem.sentence() : null,
+    };
+  });
 };
 
 async function main() {
   console.log("🌱 Starting seeding...");
 
-  // Clear existing data (optional - be careful in production!)
+  // Clear existing data
   await prisma.medicineRequestItem.deleteMany();
   await prisma.medicineRequestor.deleteMany();
   await prisma.medicineCart.deleteMany();
@@ -164,6 +212,7 @@ async function main() {
         userId: user.id,
         medicineId: medicine.id,
         quantity: faker.number.int({ min: 1, max: 3 }),
+        addedAt: faker.date.recent({ days: 30 }),
       })),
     });
   }
@@ -172,8 +221,9 @@ async function main() {
   // Seed Medicine Requests (2-4 requests per user)
   for (const user of allUsers) {
     const numRequests = faker.number.int({ min: 1, max: 4 });
+    const requests = generateMedicineRequests(user.id, numRequests);
 
-    for (let i = 0; i < numRequests; i++) {
+    for (const request of requests) {
       const numRequestItems = faker.number.int({ min: 1, max: 5 });
       const selectedMedicines = faker.helpers.arrayElements(
         allMedicines,
@@ -182,9 +232,7 @@ async function main() {
 
       await prisma.medicineRequestor.create({
         data: {
-          userId: user.id,
-          reason: faker.lorem.sentence(),
-          status: randomEnumValue(RequestStatus),
+          ...request,
           medicines: {
             create: selectedMedicines.map((medicine) => ({
               medicineId: medicine.id,
@@ -196,6 +244,16 @@ async function main() {
     }
   }
   console.log(`✅ Created medicine requests for all users`);
+
+  // Create an admin user
+  await prisma.admin.create({
+    data: {
+      name: "ADMIN",
+      username: "admin",
+      password: "admin123", // In a real app, this should be hashed
+    },
+  });
+  console.log(`✅ Created admin user`);
 
   console.log("🌱 Seeding completed successfully!");
 }
