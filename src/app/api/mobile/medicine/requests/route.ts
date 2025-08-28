@@ -51,9 +51,9 @@ export async function GET(request: NextRequest) {
               image: true,
             }
           },
-          MedicineRequestItem: {
+          medicines: {
             include: {
-              Medicine: {
+              medicine: {
                 select: {
                   id: true,
                   name: true,
@@ -91,14 +91,14 @@ export async function GET(request: NextRequest) {
       createdAt: request.createdAt,
       updatedAt: request.updatedAt,
       user: request.user,
-      medicines: request.MedicineRequestItem.map(item => ({
+      medicines: request.medicines.map(item => ({
         id: item.id,
         medicineId: item.medicineId,
         quantity: item.quantity,
-        medicine: item.Medicine,
+        medicine: item.medicine,
       })),
-      totalMedicines: request.MedicineRequestItem.length,
-      totalQuantity: request.MedicineRequestItem.reduce((sum, item) => sum + item.quantity, 0),
+      totalMedicines: request.medicines.length,
+      totalQuantity: request.medicines.reduce((sum, item) => sum + item.quantity, 0),
     }));
     
     // Calculate pagination info

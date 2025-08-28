@@ -7,6 +7,7 @@ const querySchema = z.object({
   page: z.number().min(1).default(1), // Page number for pagination
   limit: z.number().min(1).max(100).default(20), // Items per page
   inStock: z.boolean().optional(), // Filter by stock availability
+  type: z.enum(["OTC", "PRESCRIPTION"]).optional(), // Filter by medicine type
 });
 
 export async function GET(request: NextRequest) {
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest) {
       page: parseInt(searchParams.get("page") || "1"),
       limit: parseInt(searchParams.get("limit") || "20"),
       inStock: searchParams.get("inStock") ? searchParams.get("inStock") === "true" : undefined,
+      type: searchParams.get("type") as "OTC" | "PRESCRIPTION" | undefined,
     };
     
     const validatedParams = querySchema.parse(params);
@@ -34,6 +36,11 @@ export async function GET(request: NextRequest) {
       } else {
         whereConditions.stock = { lte: 0 };
       }
+    }
+    
+    // Filter by type if specified
+    if (validatedParams.type) {
+      whereConditions.type = validatedParams.type;
     }
     
     // Calculate pagination
