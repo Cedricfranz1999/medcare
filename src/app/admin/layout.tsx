@@ -1,13 +1,10 @@
 "use client";
 import { Toaster } from "~/components/ui/toaster";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
-  const router = useRouter();
 
   // useEffect(() => {
   //   const adminData = localStorage.getItem("adminData");

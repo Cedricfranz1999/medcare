@@ -20,12 +20,14 @@ model Admin {
 model user {
   id                         Int                 @id @default(autoincrement())
   username                   String              @unique
-  password                   String
+  password                   String?
   name                       String
   middleName                 String?
   lastName                   String?
+  email                      String?             @unique
+  googleId                   String?             @unique
   image                      String?
-  DateOfBirth                String
+  DateOfBirth                String?
   age                        String?
   address                    String?
   contactNumber              String?
@@ -37,6 +39,8 @@ model user {
   requests                   MedicineRequestor[]
 
   @@index([status])
+  @@index([email])
+  @@index([googleId])
 }
 
 model Medicine {

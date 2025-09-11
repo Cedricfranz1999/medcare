@@ -10,11 +10,10 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { Label } from "~/components/ui/label";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const Sidebar = () => {
-  const router = useRouter();
   const pathname = usePathname();
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(
     {},

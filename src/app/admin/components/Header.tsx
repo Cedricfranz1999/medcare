@@ -3,13 +3,9 @@ import Link from "next/link";
 import {
   CircleUser,
   Home,
-  LineChart,
   Menu,
-  Package,
   Package2,
-  ShoppingCart,
   User,
-  User2,
   Users,
   ClipboardList,
   Pill,
@@ -29,7 +25,6 @@ import { DialogTitle } from "~/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useRouter } from "next/navigation";
 import { useAdminStore } from "~/app/store/adminStore";
-import { use } from "react";
 import { Label } from "~/components/ui/label";
 
 const Header = () => {

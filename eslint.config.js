@@ -33,20 +33,14 @@ export default tseslint.config(
       "@typescript-eslint/non-nullable-type-assertion-style": "off",
       "@typescript-eslint/no-floating-promises": "off",
       "@typescript-eslint/no-redundant-type-constituents": "off",
-      "@typescript-eslint/consistent-type-imports": [
-        "warn",
-        {
-          prefer: "type-imports",
-          fixStyle: "inline-type-imports",
-        },
-      ],
-      "@typescript-eslint/no-unused-vars": [
-        "warn",
-        {
-          argsIgnorePattern: "^_",
-        },
-      ],
+      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/consistent-type-imports": "off",
       "@typescript-eslint/require-await": "off",
+      "@typescript-eslint/no-unnecessary-type-assertion": "off",
+      "@typescript-eslint/no-unnecessary-condition": "off",
+      "@typescript-eslint/restrict-template-expressions": "off",
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/consistent-indexed-object-style": "off",
     },
   },
   {

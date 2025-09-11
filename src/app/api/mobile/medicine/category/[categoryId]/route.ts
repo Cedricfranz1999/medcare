@@ -13,13 +13,15 @@ const querySchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { categoryId: string } }
+  { params }: { params: Promise<{ categoryId: string }> }
 ) {
   try {
     const { searchParams } = new URL(request.url);
+
+    const resolvedParams = await params;
+    const categoryId = parseInt(resolvedParams.categoryId);
     
     // Parse and validate category ID
-    const categoryId = parseInt(params.categoryId);
     if (isNaN(categoryId) || categoryId < 1) {
       return NextResponse.json(
         { error: "Invalid category ID" },
