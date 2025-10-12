@@ -8,6 +8,7 @@ const querySchema = z.object({
   limit: z.number().min(1).max(100).default(20), // Items per page
   inStock: z.boolean().optional(), // Filter by stock availability
   type: z.enum(["OTC", "PRESCRIPTION"]).optional(), // Filter by medicine type
+  isRecommended: z.boolean().optional()
 });
 
 export async function GET(request: NextRequest) {
@@ -20,14 +21,13 @@ export async function GET(request: NextRequest) {
       limit: parseInt(searchParams.get("limit") || "20"),
       inStock: searchParams.get("inStock") ? searchParams.get("inStock") === "true" : undefined,
       type: searchParams.get("type") as "OTC" | "PRESCRIPTION" | undefined,
+      isRecommended: searchParams.get("isRecommended") ? searchParams.get("isRecommended") === "true" : undefined,
     };
     
     const validatedParams = querySchema.parse(params);
     
     // Build where conditions
-    const whereConditions: any = {
-      recommended: true, // Only get recommended medicines
-    };
+    const whereConditions: any = {};
     
     // Filter by stock availability if specified
     if (validatedParams.inStock !== undefined) {
@@ -41,6 +41,11 @@ export async function GET(request: NextRequest) {
     // Filter by type if specified
     if (validatedParams.type) {
       whereConditions.type = validatedParams.type;
+    }
+    
+    // Filter by recommended status
+    if (validatedParams.isRecommended !== undefined) {
+      whereConditions.recommended = validatedParams.isRecommended;
     }
     
     // Calculate pagination
