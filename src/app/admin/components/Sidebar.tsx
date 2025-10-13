@@ -12,12 +12,12 @@ import {
 import { Label } from "~/components/ui/label";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { api } from "~/trpc/react";
 
 const Sidebar = () => {
   const pathname = usePathname();
-  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(
-    {},
-  );
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
+  const { data: newUser, refetch: refetchCount } = api.user.newUsersCount.useQuery();
 
   const isActive = (path: string) => pathname.startsWith(path);
 
@@ -32,7 +32,7 @@ const Sidebar = () => {
     <div className="hidden bg-gradient-to-b from-[#0ac2de] via-[#0fa7d1] to-[#156cbc] md:block">
       <div className="flex h-full max-h-screen flex-col gap-2">
         <div className="flex h-14 items-center border-b border-white/20 px-4 lg:h-[60px] lg:px-6">
-          <Label className="text-xl font-bold text-white">CareMeds</Label>
+          <Label className="text-xl font-bold text-white">CareMed</Label>
         </div>
         <div className="mt-6 flex-1">
           <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
@@ -105,7 +105,7 @@ const Sidebar = () => {
                         : "text-white/80 hover:bg-[#0ca4d4] hover:text-white"
                     }`}
                   >
-                    <span className="ml-4">list</span>
+                    <span className="ml-4">List</span>
                   </Link>
                   <Link
                     href="/admin/medicine/category"
@@ -115,9 +115,8 @@ const Sidebar = () => {
                         : "text-white/80 hover:bg-[#0ca4d4] hover:text-white"
                     }`}
                   >
-                    <span className="ml-4">category</span>
+                    <span className="ml-4">Category</span>
                   </Link>
-
                   <Link
                     href="/admin/medicine/recommended"
                     className={`flex items-center gap-3 rounded-lg px-3 py-2 text-xs transition-all ${
@@ -126,28 +125,36 @@ const Sidebar = () => {
                         : "text-white/80 hover:bg-[#0ca4d4] hover:text-white"
                     }`}
                   >
-                    <span className="ml-4">recommended</span>
+                    <span className="ml-4">Recommended</span>
                   </Link>
                 </div>
               )}
             </div>
 
             {/* Users */}
-            <div>
-              <div className="flex items-center justify-between">
-                <Link
-                  href="/admin/users"
-                  className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-2 transition-all ${
-                    isActive("/admin/users")
-                      ? "bg-white text-[#156cbc]"
-                      : "text-white hover:bg-[#0ca4d4] hover:text-white"
-                  }`}
-                >
-                  <Users className="h-4 w-4" />
-                  Users
-                </Link>
-              </div>
-            </div>
+          <div>
+  <div className="flex items-center justify-between">
+    <Link
+      href="/admin/users"
+      className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-2 transition-all relative ${
+        isActive("/admin/users")
+          ? "bg-white text-[#156cbc]"
+          : "text-white hover:bg-[#0ca4d4] hover:text-white"
+      }`}
+    >
+      <div className="relative">
+        <Users className="h-5 w-5" />
+        {Number(newUser?.count) > 0 && (
+          <span className="absolute -top-2 -right-2 text-[10px] font-bold text-red-500">
+            {newUser?.count}
+          </span>
+        )}
+      </div>
+      <span>Users</span>
+    </Link>
+  </div>
+</div>
+
 
             {/* Reports */}
             <div>

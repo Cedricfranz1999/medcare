@@ -10,6 +10,7 @@ import {
   ClipboardList,
   Pill,
   FileText,
+  Bell,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
@@ -26,15 +27,57 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useRouter } from "next/navigation";
 import { useAdminStore } from "~/app/store/adminStore";
 import { Label } from "~/components/ui/label";
+import { useState, useEffect } from "react";
+import { api } from "~/trpc/react";
+
+// Define the type for low stock medicines
+type LowStockMedicine = {
+  id: number;
+  name: string;
+  stock: number;
+};
 
 const Header = () => {
   const router = useRouter();
   const username = useAdminStore((state) => state.username);
   const clearUsername = useAdminStore((state) => state.logout);
+  const [lowStockCount, setLowStockCount] = useState(0);
+  const [lowStockMedicines, setLowStockMedicines] = useState<LowStockMedicine[]>([]);
+  const [showLowStock, setShowLowStock] = useState(false);
+
+  // Fetch the count of low stock medicines with notificationopen: true
+  const { data: lowStockCountData ,refetch:refetchCount } = api.medicine.getLowStockCount.useQuery();
+
+  // Fetch the list of all low stock medicines
+  const { data: lowStockData ,refetch } = api.medicine.getLowStock.useQuery();
+
+  // Mutation to update notificationopen for low stock medicines
+  const { mutate: updateLowStockNotificationOpen } = api.medicine.updateLowStockNotificationOpen.useMutation();
+
+  useEffect(() => {
+    if (lowStockCountData) {
+      setLowStockCount(lowStockCountData.count);
+    }
+  }, [lowStockCountData]);
+
+  useEffect(() => {
+    if (lowStockData) {
+      setLowStockMedicines(lowStockData.medicines);
+    }
+  }, [lowStockData]);
 
   const handleLogout = () => {
     clearUsername();
     router.push("/sign-in");
+  };
+
+  const handleNotificationClick = () => {
+    updateLowStockNotificationOpen({ to: false });
+  };
+
+  const handleNotificationBlur = () => {
+    updateLowStockNotificationOpen({ to: true });
+    refetchCount()
   };
 
   return (
@@ -63,7 +106,7 @@ const Header = () => {
               className="flex items-center gap-2 text-lg font-semibold"
             >
               <Package2 className="h-6 w-6" />
-              <span className="sr-only">MedCare System</span>
+              <span className="sr-only">CAREMED System</span>
             </Link>
             {[
               {
@@ -129,37 +172,96 @@ const Header = () => {
         </SheetContent>
       </Sheet>
       <div className="w-full flex-1" />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="secondary"
-            size="icon"
-            className="rounded-full bg-white text-[#156cbc] hover:bg-[#f0f0f0]"
-          >
-            <CircleUser className="h-5 w-5" />
-            <span className="sr-only">Toggle user menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          className="w-10 rounded-md border border-[#b0daef] bg-white text-[#156cbc] shadow-md"
+      <div className="flex items-center gap-4">
+        <DropdownMenu
+          open={showLowStock}
+          onOpenChange={(open) => {
+            setShowLowStock(open);
+            if (open) {
+              handleNotificationClick();
+              refetch()
+            } else {
+              handleNotificationBlur();
+            }
+          }}
         >
-          <DropdownMenuLabel className="text-sm text-[#0fa7d1]">
-            <div className="flex items-center justify-start gap-2">
-              <User size={16} />
-              <Label>{username}</Label>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="cursor-pointer text-[#156cbc] hover:bg-[#0ca4d4] hover:text-white"
-            onClick={handleLogout}
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="relative rounded-full bg-white text-[#156cbc] hover:bg-[#f0f0f0]"
+            >
+              <Bell className="h-5 w-5" />
+              {lowStockCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                  {lowStockCount}
+                </span>
+              )}
+              <span className="sr-only">Toggle notifications</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="w-64 rounded-md border border-[#b0daef] bg-white text-[#156cbc] shadow-md"
           >
-            Logout
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <DropdownMenuLabel className="text-sm text-[#0fa7d1]">
+              Low Stock Medicines
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {lowStockMedicines.length > 0 ? (
+              lowStockMedicines.map((medicine) => (
+                <DropdownMenuItem
+                  key={medicine.id}
+                  className="cursor-pointer text-[#156cbc] hover:bg-[#0ca4d4] hover:text-white"
+                >
+                  <div className="flex items-center justify-between " onClick={()=>router.push("/admin/medicine/list")}>
+                    <span>{medicine.name}</span>
+                    <span className="text-xs text-red-500">
+                      Stock: {medicine.stock}
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+              ))
+            ) : (
+              <DropdownMenuItem className="cursor-pointer text-[#156cbc]">
+                No low stock medicines
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="rounded-full bg-white text-[#156cbc] hover:bg-[#f0f0f0]"
+            >
+              <CircleUser className="h-5 w-5" />
+              <span className="sr-only">Toggle user menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="w-10 rounded-md border border-[#b0daef] bg-white text-[#156cbc] shadow-md"
+          >
+            <DropdownMenuLabel className="text-sm text-[#0fa7d1]">
+              <div className="flex items-center justify-start gap-2">
+                <User size={16} />
+                <Label>{username}</Label>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer text-[#156cbc] hover:bg-[#0ca4d4] hover:text-white"
+              onClick={handleLogout}
+            >
+              Logout
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </header>
   );
 };
+
 export default Header;

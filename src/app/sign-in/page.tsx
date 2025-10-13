@@ -59,7 +59,7 @@ const SignInPage = () => {
         animate={{ opacity: 1 }}
         transition={{ duration: 1 }}
       >
-        MEDCARE: Barangay Health Access Portal
+        CAREMED: Barangay Health Access Portal
       </motion.h1>
       <motion.div
         className="w-full max-w-lg rounded-lg bg-white p-10 text-center shadow-xl"

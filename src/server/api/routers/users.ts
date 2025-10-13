@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import type { Prisma } from "@prisma/client";
+import { endOfDay, startOfDay } from "date-fns";
 
 export const usersRouter = createTRPCRouter({
   getAllUsers: publicProcedure
@@ -55,4 +56,20 @@ export const usersRouter = createTRPCRouter({
         },
       });
     }),
+    newUsersCount: publicProcedure.query(async ({ ctx }) => {
+    const todayStart = startOfDay(new Date());
+    const todayEnd = endOfDay(new Date());
+
+    const count = await ctx.db.user.count({
+      where: {
+        createdAt: {
+          gte: todayStart,
+          lte: todayEnd,
+        },
+      },
+    });
+
+    return { count };
+  }),
+ 
 });

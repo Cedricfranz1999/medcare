@@ -180,4 +180,62 @@ export const medicineRouter = createTRPCRouter({
       orderBy: { name: "asc" },
     });
   }),
+  getLowStock: publicProcedure.query(async ({ ctx }) => {
+  const medicines = await ctx.db.medicine.findMany({
+    where: {
+      stock: {
+        lte: 10, 
+      },
+    },
+    orderBy: { stock: "asc" },
+    select: {
+      id: true,
+      name: true,
+      stock: true,
+    },
+  });
+  return {
+    count: medicines.length,
+    medicines,
+  };
+}),
+updateAllNotificationOpen: publicProcedure
+  .mutation(async ({ ctx }) => {
+    await ctx.db.medicine.updateMany({
+      where: {},
+      data: { notificationopen: true },
+    });
+    return { success: true };
+  }),
+
+  updateLowStockNotificationOpen: publicProcedure
+  .input(z.object({ to: z.boolean() }))
+  .mutation(async ({ ctx, input }) => {
+    await ctx.db.medicine.updateMany({
+      where: { stock: { lte: 10 } }, 
+      data: { notificationopen: input.to },
+    });
+    return { success: true };
+  }),
+
+  getLowStockCount: publicProcedure.query(async ({ ctx }) => {
+  const medicines = await ctx.db.medicine.findMany({
+    where: {
+      stock: {
+        lte: 10, 
+      },
+      notificationopen:true
+    },
+    orderBy: { stock: "asc" },
+    select: {
+      id: true,
+      name: true,
+      stock: true,
+    },
+  });
+  return {
+    count: medicines.length,
+    medicines,
+  };
+}),
 });

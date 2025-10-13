@@ -427,7 +427,7 @@ const MedicinesPage = () => {
                       <TableCell>
                         <div className="group relative">
                           {medicine.image ? (
-                            <Image
+                            <img
                               src={medicine.image || "/placeholder.svg"}
                               alt={medicine.name}
                               width={48}
@@ -626,7 +626,7 @@ const MedicinesPage = () => {
                 <div className="flex flex-col items-center gap-3">
                   <div className="group relative">
                     {imagePreview ? (
-                      <Image
+                      <img
                         src={imagePreview || "/placeholder.svg"}
                         alt="Preview"
                         width={120}
