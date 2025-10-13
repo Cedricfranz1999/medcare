@@ -1,4 +1,3 @@
-// ~/app/admin/user-concerns/page.tsx
 "use client";
 import { useState } from "react";
 import { api } from "~/trpc/react";
@@ -18,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 
 const UserConcernPage = () => {
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState<"ALL" | "PENDING" | "IN_REVIEW" | "RESOLVED" | "CLOSED">("ALL");
   const [skip, setSkip] = useState(0);
   const take = 10;
 
@@ -26,7 +25,14 @@ const UserConcernPage = () => {
     skip,
     take,
     search,
-    status,
+    status: status === "ALL" ? undefined : status,
+  });
+
+  // Use the new updateStatus mutation
+  const { mutate: updateStatus } = api.userConcern.updateStatus.useMutation({
+    onSuccess: () => {
+      refetch();
+    },
   });
 
   const handleSearch = () => {
@@ -34,7 +40,7 @@ const UserConcernPage = () => {
     refetch();
   };
 
-  const handleStatusChange = (value: string) => {
+  const handleStatusChange = (value: "ALL" | "PENDING" | "IN_REVIEW" | "RESOLVED" | "CLOSED") => {
     setStatus(value);
     setSkip(0);
     refetch();
@@ -55,7 +61,7 @@ const UserConcernPage = () => {
       case "IN_REVIEW":
         return "default";
       case "RESOLVED":
-        return "outline"; // Changed from "success" to "outline"
+        return "outline";
       case "CLOSED":
         return "destructive";
       default:
@@ -63,10 +69,13 @@ const UserConcernPage = () => {
     }
   };
 
-  return (
-    <div className="p-6">
-      <h1 className="mb-6 text-2xl font-bold">User Concerns</h1>
+  const handleUpdateStatus = (id: number, newStatus: "PENDING" | "IN_REVIEW" | "RESOLVED" | "CLOSED") => {
+    updateStatus({ id, status: newStatus });
+  };
 
+  return (
+    <div className="p-6 bg-white">
+      <h1 className="mb-6 text-2xl font-bold">User Concerns</h1>
       <div className="mb-4 flex gap-4">
         <div className="flex-1">
           <Label htmlFor="search">Search</Label>
@@ -84,8 +93,8 @@ const UserConcernPage = () => {
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All</SelectItem>
+            <SelectContent className=" bg-white">
+              <SelectItem value="ALL">All</SelectItem>
               <SelectItem value="PENDING">Pending</SelectItem>
               <SelectItem value="IN_REVIEW">In Review</SelectItem>
               <SelectItem value="RESOLVED">Resolved</SelectItem>
@@ -97,7 +106,6 @@ const UserConcernPage = () => {
           <Button onClick={handleSearch}>Search</Button>
         </div>
       </div>
-
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -118,9 +126,26 @@ const UserConcernPage = () => {
                 <TableCell>{concern.subject}</TableCell>
                 <TableCell>{concern.description}</TableCell>
                 <TableCell>
-                  <Badge variant={getBadgeVariant(concern.status)}>
-                    {concern.status}
-                  </Badge>
+                  <Select
+                    defaultValue={concern.status}
+                    onValueChange={(value) =>
+                      handleUpdateStatus(concern.id, value as "PENDING" | "IN_REVIEW" | "RESOLVED" | "CLOSED")
+                    }
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue>
+                        <Badge variant={getBadgeVariant(concern.status)}>
+                          {concern.status}
+                        </Badge>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className=" bg-white">
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="IN_REVIEW">In Review</SelectItem>
+                      <SelectItem value="RESOLVED">Resolved</SelectItem>
+                      <SelectItem value="CLOSED">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </TableCell>
                 <TableCell>
                   {new Date(concern.createdAt).toLocaleString()}
@@ -130,18 +155,11 @@ const UserConcernPage = () => {
           </TableBody>
         </Table>
       </div>
-
       <div className="mt-4 flex justify-between">
-        <Button
-          onClick={handlePrevious}
-          disabled={skip === 0}
-        >
+        <Button onClick={handlePrevious} disabled={skip === 0}>
           Previous
         </Button>
-        <Button
-          onClick={handleNext}
-          disabled={data?.data?.length !== take}
-        >
+        <Button onClick={handleNext} disabled={data?.data?.length !== take}>
           Next
         </Button>
       </div>

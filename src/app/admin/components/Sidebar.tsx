@@ -155,7 +155,21 @@ const Sidebar = () => {
   </div>
 </div>
 
-
+   <div>
+              <div className="flex items-center justify-between">
+                <Link
+                  href="/admin/userConcern"
+                  className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+                    isActive("/admin/userConcern")
+                      ? "bg-white text-[#156cbc]"
+                      : "text-white hover:bg-[#0ca4d4] hover:text-white"
+                  }`}
+                >
+                  <FileText className="h-4 w-4" />
+                  User Concern
+                </Link>
+              </div>
+            </div>
             {/* Reports */}
             <div>
               <div className="flex items-center justify-between">

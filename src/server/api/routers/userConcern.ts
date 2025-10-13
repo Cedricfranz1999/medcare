@@ -99,4 +99,17 @@ export const userConcernRouter = createTRPCRouter({
       });
       return { message: "User concern deleted successfully" };
     }),
+    updateStatus: publicProcedure
+  .input(
+    z.object({
+      id: z.number(),
+      status: z.enum(["PENDING", "IN_REVIEW", "RESOLVED", "CLOSED"]),
+    })
+  )
+  .mutation(async ({ ctx, input }) => {
+    return ctx.db.userConcern.update({
+      where: { id: input.id },
+      data: { status: input.status },
+    });
+  }),
 });
