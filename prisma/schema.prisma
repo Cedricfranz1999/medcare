@@ -37,6 +37,7 @@ model user {
   isAlreadyRegisteredIn0auth Boolean             @default(false)
   carts                      MedicineCart[]
   requests                   MedicineRequestor[]
+  concerns                   UserConcern[]
 
   @@index([status])
   @@index([email])
@@ -128,6 +129,21 @@ model MedicineRequestItem {
   @@index([medicineId])
 }
 
+model UserConcern {
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  subject   String
+  description String
+  status    ConcernStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
 enum MedicineType {
   OTC
   PRESCRIPTION
@@ -152,4 +168,11 @@ enum UserStatus {
   PENDING
   APPROVED
   DEACTIVE
+}
+
+enum ConcernStatus {
+  PENDING
+  IN_REVIEW
+  RESOLVED
+  CLOSED
 }
