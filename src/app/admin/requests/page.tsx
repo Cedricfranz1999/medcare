@@ -220,11 +220,11 @@ export default function MedicineRequestsPage() {
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-xs font-medium">
+                    <div className="truncate text-xs font-medium ">
                       {item.medicine.name}
                     </div>
                     <div className="text-muted-foreground text-xs">
-                      {item.medicine.brand} • Qty: {item.quantity}
+                      {item.medicine.brand} •  Qty: {item.quantity}
                     </div>
                   </div>
                 </div>
