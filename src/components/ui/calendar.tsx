@@ -1,5 +1,4 @@
 "use client"
-
 import * as React from "react"
 import {
   ChevronDownIcon,
@@ -7,7 +6,6 @@ import {
   ChevronRightIcon,
 } from "lucide-react"
 import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
-
 import { cn } from "~/lib/utils"
 import { Button, buttonVariants } from "~/components/ui/button"
 
@@ -23,11 +21,20 @@ function Calendar({
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
 }) {
-  const defaultClassNames = getDefaultClassNames()
+  const today = new Date(2025, 9, 16); // October 16, 2025 (months are 0-indexed)
+  today.setHours(0, 0, 0, 0); // Normalize to start of day
 
+  const disabledDates = (date: Date) => {
+    const normalizedDate = new Date(date);
+    normalizedDate.setHours(0, 0, 0, 0);
+    return normalizedDate > today; // Disable dates after today
+  };
+
+  const defaultClassNames = getDefaultClassNames()
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      disabled={disabledDates}
       className={cn(
         "bg-background group/calendar p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
@@ -141,7 +148,6 @@ function Calendar({
               <ChevronLeftIcon className={cn("size-4", className)} {...props} />
             )
           }
-
           if (orientation === "right") {
             return (
               <ChevronRightIcon
@@ -150,7 +156,6 @@ function Calendar({
               />
             )
           }
-
           return (
             <ChevronDownIcon className={cn("size-4", className)} {...props} />
           )
@@ -179,12 +184,10 @@ function CalendarDayButton({
   ...props
 }: React.ComponentProps<typeof DayButton>) {
   const defaultClassNames = getDefaultClassNames()
-
   const ref = React.useRef<HTMLButtonElement>(null)
   React.useEffect(() => {
     if (modifiers.focused) ref.current?.focus()
   }, [modifiers.focused])
-
   return (
     <Button
       ref={ref}

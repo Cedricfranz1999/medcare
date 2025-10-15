@@ -261,7 +261,7 @@ const UsersPage = () => {
                           <option value="ALL">All Statuses</option>
                           <option value="PENDING">Pending</option>
                           <option value="APPROVED">Approved</option>
-                          <option value="DEACTIVATED">Deactivated</option>
+                          <option value="DEACTIVE">Deactivated</option>
                         </select>
                       </div>
                     </div>
