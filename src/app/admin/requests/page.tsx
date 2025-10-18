@@ -44,6 +44,7 @@ import {
 } from "~/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import Image from "next/image";
 
 const statusConfig = {
   REQUESTED: {
@@ -209,7 +210,10 @@ export default function MedicineRequestsPage() {
                   className="bg-muted/30 flex items-center gap-2 rounded-lg p-2"
                 >
                   {item.medicine.image ? (
-                    <img
+                    <Image
+                    unoptimized
+                    width={40}
+                    height={40}
                       src={item.medicine.image || "/placeholder.svg"}
                       alt={item.medicine.name}
                       className="h-6 w-6 shrink-0 rounded object-cover"
@@ -526,7 +530,9 @@ export default function MedicineRequestsPage() {
                                     className="bg-muted/30 hover:bg-muted/50 flex items-center gap-3 rounded-lg p-2 transition-colors duration-150"
                                   >
                                     {item.medicine.image ? (
-                                      <img
+                                      <Image
+                                      unoptimized
+                                      
                                         src={
                                           item.medicine.image ||
                                           "/placeholder.svg"

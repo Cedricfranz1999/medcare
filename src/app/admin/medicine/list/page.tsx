@@ -96,7 +96,7 @@ const MedicinesPage = () => {
       | "CREAM"
       | "DROPS";
     size?: string;
-    expiryDate?: Date | string;
+    expiryDate?: string;
     stock: number;
     categoryIds?: number[];
     image?: string;
@@ -116,7 +116,7 @@ const MedicinesPage = () => {
       setImagePreview(null);
       setImageFile(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "❌ Error",
         description: error.message,
@@ -155,8 +155,7 @@ const MedicinesPage = () => {
       type: medicine.type,
       dosageForm: medicine.dosageForm,
       size: medicine.size || "",
-      expiryDate: medicine.expiryDate || undefined,
-
+      expiryDate: medicine.expiryDate ? new Date(medicine.expiryDate).toISOString().split('T')[0] : "",
       stock: medicine.stock,
       categoryIds: medicine.categories?.map((c: any) => c.categoryId) || [],
       image: medicine.image || undefined,
@@ -168,8 +167,8 @@ const MedicinesPage = () => {
   };
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && (e.target.files[0] as any)) {
-      const file = e.target.files[0] as any;
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
       const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
       if (!validTypes.includes(file.type)) {
         toast({
@@ -215,6 +214,10 @@ const MedicinesPage = () => {
       }
     }
 
+    // Get expiry date from form and handle properly
+    const expiryDateValue = formData.get("expiryDate") as string;
+    const expiryDate = expiryDateValue ? new Date(expiryDateValue) : undefined;
+
     const medicineData = {
       id: editingMedicine?.id,
       name: formData.get("name") as string,
@@ -230,6 +233,7 @@ const MedicinesPage = () => {
         | "DROPS",
       size: formData.get("size") as string,
       stock: Number(formData.get("stock")),
+      expiryDate: expiryDate,
       categoryIds: editingMedicine?.categoryIds,
       image: imageUrl,
     };
@@ -287,6 +291,7 @@ const MedicinesPage = () => {
               dosageForm: "TABLET",
               stock: 0,
               categoryIds: [],
+              expiryDate: "",
             });
             setDialogOpen(true);
           }}
@@ -344,7 +349,7 @@ const MedicinesPage = () => {
                   </SelectTrigger>
                   <SelectContent className="border-gray-200 bg-white">
                     <SelectItem value="all">All Categories</SelectItem>
-                    {categories.data?.map((category) => (
+                    {categories.data?.map((category: any) => (
                       <SelectItem
                         key={category.id}
                         value={category.id.toString()}
@@ -367,6 +372,7 @@ const MedicinesPage = () => {
                   dosageForm: "TABLET",
                   stock: 0,
                   categoryIds: [],
+                  expiryDate: "",
                 });
                 setDialogOpen(true);
               }}
@@ -418,7 +424,7 @@ const MedicinesPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data?.data.map((medicine, index) => (
+                  {data?.data.map((medicine: any, index: any) => (
                     <TableRow
                       key={medicine.id}
                       className="animate-in slide-in-from-left-5 border-gray-300 transition-all duration-200 hover:bg-gray-50/50"
@@ -427,7 +433,8 @@ const MedicinesPage = () => {
                       <TableCell>
                         <div className="group relative">
                           {medicine.image ? (
-                            <img
+                            <Image 
+                            unoptimized
                               src={medicine.image || "/placeholder.svg"}
                               alt={medicine.name}
                               width={48}
@@ -496,7 +503,7 @@ const MedicinesPage = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {medicine.categories?.map(({ category }) => (
+                          {medicine.categories?.map(({ category }: any) => (
                             <Badge
                               key={category.id}
                               variant="outline"
@@ -626,7 +633,8 @@ const MedicinesPage = () => {
                 <div className="flex flex-col items-center gap-3">
                   <div className="group relative">
                     {imagePreview ? (
-                      <img
+                      <Image
+                      unoptimized
                         src={imagePreview || "/placeholder.svg"}
                         alt="Preview"
                         width={120}
@@ -822,6 +830,7 @@ const MedicinesPage = () => {
                   />
                 </div>
               </div>
+              
               <div className="space-y-2">
                 <Label
                   htmlFor="expiryDate"
@@ -833,13 +842,7 @@ const MedicinesPage = () => {
                   id="expiryDate"
                   name="expiryDate"
                   type="date"
-                  defaultValue={
-                    editingMedicine?.expiryDate
-                      ? new Date(editingMedicine.expiryDate)
-                          .toISOString()
-                          .split("T")[0]
-                      : ""
-                  }
+                  defaultValue={editingMedicine?.expiryDate || ""}
                   className="border-gray-300 transition-all duration-200 focus:border-[#0ca4d4] focus:ring-[#0ca4d4]"
                 />
               </div>
@@ -850,7 +853,7 @@ const MedicinesPage = () => {
                   Categories
                 </Label>
                 <div className="grid max-h-40 grid-cols-2 gap-3 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50/50 p-4 sm:grid-cols-3">
-                  {categories.data?.map((category) => (
+                  {categories.data?.map((category: any) => (
                     <div
                       key={category.id}
                       className="flex items-center space-x-2 rounded p-2 transition-colors duration-200 hover:bg-white"

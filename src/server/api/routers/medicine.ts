@@ -81,18 +81,14 @@ export const medicineRouter = createTRPCRouter({
           "DROPS",
         ]),
         size: z.string().optional(),
-
-        expiryDate: z
-          .string()
-          .optional()
-          .transform((val) => (val ? new Date(val) : undefined)),
-
+        expiryDate: z.date().optional().nullable(),
         stock: z.number().min(0, "Stock cannot be negative"),
         categoryIds: z.array(z.number()).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      console.log("ZZZ", input);
+      console.log("Input data:", input);
+      
       const data = {
         name: input.name,
         brand: input.brand,
@@ -100,9 +96,7 @@ export const medicineRouter = createTRPCRouter({
         type: input.type,
         dosageForm: input.dosageForm,
         size: input.size,
-
         expiryDate: input.expiryDate,
-
         stock: input.stock,
         image: input.image,
       };
