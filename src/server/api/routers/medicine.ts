@@ -1,4 +1,3 @@
-// ~/server/api/routers/medicine.ts
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { uploadImage } from "~/lib/upload/uploadImage";
@@ -180,62 +179,183 @@ export const medicineRouter = createTRPCRouter({
       orderBy: { name: "asc" },
     });
   }),
+
   getLowStock: publicProcedure.query(async ({ ctx }) => {
-  const medicines = await ctx.db.medicine.findMany({
-    where: {
-      stock: {
-        lte: 10, 
+    const medicines = await ctx.db.medicine.findMany({
+      where: {
+        stock: {
+          lte: 10, 
+        },
       },
-    },
-    orderBy: { stock: "asc" },
-    select: {
-      id: true,
-      name: true,
-      stock: true,
-    },
-  });
-  return {
-    count: medicines.length,
-    medicines,
-  };
-}),
-updateAllNotificationOpen: publicProcedure
-  .mutation(async ({ ctx }) => {
-    await ctx.db.medicine.updateMany({
-      where: {},
-      data: { notificationopen: true },
+      orderBy: { stock: "asc" },
+      select: {
+        id: true,
+        name: true,
+        stock: true,
+      },
     });
-    return { success: true };
+    return {
+      count: medicines.length,
+      medicines,
+    };
   }),
+
+  getNearExpiry: publicProcedure.query(async ({ ctx }) => {
+    const today = new Date();
+    const twoMonthsFromNow = new Date();
+    twoMonthsFromNow.setMonth(today.getMonth() + 2);
+    
+    const medicines = await ctx.db.medicine.findMany({
+      where: {
+        expiryDate: {
+          lte: twoMonthsFromNow,
+          gte: today,
+        },
+      },
+      orderBy: { expiryDate: "asc" },
+      select: {
+        id: true,
+        name: true,
+        expiryDate: true,
+        stock: true,
+      },
+    });
+    return {
+      count: medicines.length,
+      medicines,
+    };
+  }),
+
+  getExpired: publicProcedure.query(async ({ ctx }) => {
+    const today = new Date();
+    
+    const medicines = await ctx.db.medicine.findMany({
+      where: {
+        expiryDate: {
+          lt: today,
+        },
+      },
+      orderBy: { expiryDate: "asc" },
+      select: {
+        id: true,
+        name: true,
+        expiryDate: true,
+        stock: true,
+      },
+    });
+    return {
+      count: medicines.length,
+      medicines,
+    };
+  }),
+
+  updateAllNotificationOpen: publicProcedure
+    .mutation(async ({ ctx }) => {
+      await ctx.db.medicine.updateMany({
+        where: {},
+        data: { notificationopen: true },
+      });
+      return { success: true };
+    }),
 
   updateLowStockNotificationOpen: publicProcedure
-  .input(z.object({ to: z.boolean() }))
-  .mutation(async ({ ctx, input }) => {
-    await ctx.db.medicine.updateMany({
-      where: { stock: { lte: 10 } }, 
-      data: { notificationopen: input.to },
-    });
-    return { success: true };
-  }),
+    .input(z.object({ to: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.medicine.updateMany({
+        where: { stock: { lte: 10 } }, 
+        data: { notificationopen: input.to },
+      });
+      return { success: true };
+    }),
+
+  updateNearExpiryNotificationOpen: publicProcedure
+    .input(z.object({ to: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const today = new Date();
+      const twoMonthsFromNow = new Date();
+      twoMonthsFromNow.setMonth(today.getMonth() + 2);
+      
+      await ctx.db.medicine.updateMany({
+        where: { 
+          expiryDate: {
+            lte: twoMonthsFromNow,
+            gte: today,
+          }
+        }, 
+        data: { notificationopen: input.to },
+      });
+      return { success: true };
+    }),
 
   getLowStockCount: publicProcedure.query(async ({ ctx }) => {
-  const medicines = await ctx.db.medicine.findMany({
-    where: {
-      stock: {
-        lte: 10, 
+    const medicines = await ctx.db.medicine.findMany({
+      where: {
+        stock: {
+          lte: 10, 
+        },
+        notificationopen: true
       },
-      notificationopen:true
-    },
-    orderBy: { stock: "asc" },
-    select: {
-      id: true,
-      name: true,
-      stock: true,
-    },
-  });
-  return {
-    count: medicines.length,
-    medicines,
-  };
-}),
+      orderBy: { stock: "asc" },
+      select: {
+        id: true,
+        name: true,
+        stock: true,
+      },
+    });
+    return {
+      count: medicines.length,
+      medicines,
+    };
+  }),
+
+  getNearExpiryCount: publicProcedure.query(async ({ ctx }) => {
+    const today = new Date();
+    const twoMonthsFromNow = new Date();
+    twoMonthsFromNow.setMonth(today.getMonth() + 2);
+    
+    const medicines = await ctx.db.medicine.findMany({
+      where: {
+        expiryDate: {
+          lte: twoMonthsFromNow,
+          gte: today,
+        },
+        notificationopen: true
+      },
+      orderBy: { expiryDate: "asc" },
+      select: {
+        id: true,
+        name: true,
+        expiryDate: true,
+        stock: true,
+      },
+    });
+    return {
+      count: medicines.length,
+      medicines,
+    };
+  }),
+
+  getExpiredCount: publicProcedure.query(async ({ ctx }) => {
+    const today = new Date();
+    
+    const medicines = await ctx.db.medicine.findMany({
+      where: {
+        expiryDate: {
+          lt: today,
+        },
+        notificationopen: true
+      },
+      orderBy: { expiryDate: "asc" },
+      select: {
+        id: true,
+        name: true,
+        expiryDate: true,
+        stock: true,
+      },
+    });
+    return {
+      count: medicines.length,
+      medicines,
+    };
+  }),
 });

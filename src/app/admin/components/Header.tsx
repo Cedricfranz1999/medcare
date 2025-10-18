@@ -37,22 +37,42 @@ type LowStockMedicine = {
   stock: number;
 };
 
+// Define the type for near expiry medicines
+type NearExpiryMedicine = {
+  id: number;
+  name: string;
+  expiryDate: Date;
+  stock: number;
+};
+
 const Header = () => {
   const router = useRouter();
   const username = useAdminStore((state) => state.username);
   const clearUsername = useAdminStore((state) => state.logout);
   const [lowStockCount, setLowStockCount] = useState(0);
+  const [nearExpiryCount, setNearExpiryCount] = useState(0);
   const [lowStockMedicines, setLowStockMedicines] = useState<LowStockMedicine[]>([]);
-  const [showLowStock, setShowLowStock] = useState(false);
+  const [nearExpiryMedicines, setNearExpiryMedicines] = useState<NearExpiryMedicine[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [activeTab, setActiveTab] = useState<'lowStock' | 'nearExpiry'>('lowStock');
 
   // Fetch the count of low stock medicines with notificationopen: true
-  const { data: lowStockCountData ,refetch:refetchCount } = api.medicine.getLowStockCount.useQuery();
+  const { data: lowStockCountData, refetch: refetchLowStockCount } = api.medicine.getLowStockCount.useQuery();
+
+  // Fetch the count of near expiry medicines with notificationopen: true
+  const { data: nearExpiryCountData, refetch: refetchNearExpiryCount } = api.medicine.getNearExpiryCount.useQuery();
 
   // Fetch the list of all low stock medicines
-  const { data: lowStockData ,refetch } = api.medicine.getLowStock.useQuery();
+  const { data: lowStockData, refetch: refetchLowStock } = api.medicine.getLowStock.useQuery();
+
+  // Fetch the list of all near expiry medicines
+  const { data: nearExpiryData, refetch: refetchNearExpiry } = api.medicine.getNearExpiry.useQuery();
 
   // Mutation to update notificationopen for low stock medicines
   const { mutate: updateLowStockNotificationOpen } = api.medicine.updateLowStockNotificationOpen.useMutation();
+
+  // Mutation to update notificationopen for near expiry medicines
+  const { mutate: updateNearExpiryNotificationOpen } = api.medicine.updateNearExpiryNotificationOpen.useMutation();
 
   useEffect(() => {
     if (lowStockCountData) {
@@ -61,10 +81,22 @@ const Header = () => {
   }, [lowStockCountData]);
 
   useEffect(() => {
+    if (nearExpiryCountData) {
+      setNearExpiryCount(nearExpiryCountData.count);
+    }
+  }, [nearExpiryCountData]);
+
+  useEffect(() => {
     if (lowStockData) {
       setLowStockMedicines(lowStockData.medicines);
     }
   }, [lowStockData]);
+
+  useEffect(() => {
+    if (nearExpiryData) {
+      setNearExpiryMedicines(nearExpiryData.medicines as any);
+    }
+  }, [nearExpiryData]);
 
   const handleLogout = () => {
     clearUsername();
@@ -72,12 +104,48 @@ const Header = () => {
   };
 
   const handleNotificationClick = () => {
-    updateLowStockNotificationOpen({ to: false });
+    if (activeTab === 'lowStock') {
+      updateLowStockNotificationOpen({ to: false });
+    } else {
+      updateNearExpiryNotificationOpen({ to: false });
+    }
   };
 
   const handleNotificationBlur = () => {
-    updateLowStockNotificationOpen({ to: true });
-    refetchCount()
+    if (activeTab === 'lowStock') {
+      updateLowStockNotificationOpen({ to: true });
+      refetchLowStockCount();
+    } else {
+      updateNearExpiryNotificationOpen({ to: true });
+      refetchNearExpiryCount();
+    }
+  };
+
+  const totalNotificationCount = lowStockCount + nearExpiryCount;
+
+  const formatExpiryDate = (date: Date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const getExpiryStatus = (expiryDate: Date) => {
+    const today = new Date();
+    const expiry = new Date(expiryDate);
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      return { text: 'Expired', color: 'text-red-600' };
+    } else if (diffDays <= 30) {
+      return { text: `${diffDays} days`, color: 'text-red-500' };
+    } else if (diffDays <= 60) {
+      return { text: `${diffDays} days`, color: 'text-orange-500' };
+    } else {
+      return { text: `${diffDays} days`, color: 'text-yellow-500' };
+    }
   };
 
   return (
@@ -174,12 +242,13 @@ const Header = () => {
       <div className="w-full flex-1" />
       <div className="flex items-center gap-4">
         <DropdownMenu
-          open={showLowStock}
+          open={showNotifications}
           onOpenChange={(open) => {
-            setShowLowStock(open);
+            setShowNotifications(open);
             if (open) {
               handleNotificationClick();
-              refetch()
+              refetchLowStock();
+              refetchNearExpiry();
             } else {
               handleNotificationBlur();
             }
@@ -192,9 +261,9 @@ const Header = () => {
               className="relative rounded-full bg-white text-[#156cbc] hover:bg-[#f0f0f0]"
             >
               <Bell className="h-5 w-5" />
-              {lowStockCount > 0 && (
+              {totalNotificationCount > 0 && (
                 <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                  {lowStockCount}
+                  {totalNotificationCount}
                 </span>
               )}
               <span className="sr-only">Toggle notifications</span>
@@ -202,30 +271,88 @@ const Header = () => {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-64 rounded-md border border-[#b0daef] bg-white text-[#156cbc] shadow-md"
+            className="w-80 rounded-md border border-[#b0daef] bg-white text-[#156cbc] shadow-md"
           >
             <DropdownMenuLabel className="text-sm text-[#0fa7d1]">
-              Low Stock Medicines
+              <div className="flex border-b">
+                <button
+                  className={`flex-1 py-2 text-center ${
+                    activeTab === 'lowStock' 
+                      ? 'border-b-2 border-[#0fa7d1] font-semibold' 
+                      : 'text-gray-500'
+                  }`}
+                  onClick={() => setActiveTab('lowStock')}
+                >
+                  Low Stock ({lowStockCount})
+                </button>
+                <button
+                  className={`flex-1 py-2 text-center ${
+                    activeTab === 'nearExpiry' 
+                      ? 'border-b-2 border-[#0fa7d1] font-semibold' 
+                      : 'text-gray-500'
+                  }`}
+                  onClick={() => setActiveTab('nearExpiry')}
+                >
+                  Near Expiry ({nearExpiryCount})
+                </button>
+              </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {lowStockMedicines.length > 0 ? (
-              lowStockMedicines.map((medicine) => (
-                <DropdownMenuItem
-                  key={medicine.id}
-                  className="cursor-pointer text-[#156cbc] hover:bg-[#0ca4d4] hover:text-white"
-                >
-                  <div className="flex items-center justify-between " onClick={()=>router.push("/admin/medicine/list")}>
-                    <span>{medicine.name}</span>
-                    <span className="text-xs text-red-500">
-                      Stock: {medicine.stock}
-                    </span>
-                  </div>
+            
+            {activeTab === 'lowStock' ? (
+              lowStockMedicines.length > 0 ? (
+                lowStockMedicines.map((medicine) => (
+                  <DropdownMenuItem
+                    key={`low-stock-${medicine.id}`}
+                    className="cursor-pointer text-[#156cbc] hover:bg-[#0ca4d4] hover:text-white"
+                  >
+                    <div 
+                      className="flex items-center justify-between w-full" 
+                      onClick={() => router.push("/admin/medicine/list")}
+                    >
+                      <span className="flex-1 truncate mr-2">{medicine.name}</span>
+                      <span className="text-xs text-red-500 whitespace-nowrap">
+                        Stock: {medicine.stock}
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                ))
+              ) : (
+                <DropdownMenuItem className="cursor-pointer text-[#156cbc] justify-center">
+                  No low stock medicines
                 </DropdownMenuItem>
-              ))
+              )
             ) : (
-              <DropdownMenuItem className="cursor-pointer text-[#156cbc]">
-                No low stock medicines
-              </DropdownMenuItem>
+              nearExpiryMedicines.length > 0 ? (
+                nearExpiryMedicines.map((medicine) => {
+                  const expiryStatus = getExpiryStatus(medicine.expiryDate);
+                  return (
+                    <DropdownMenuItem
+                      key={`near-expiry-${medicine.id}`}
+                      className="cursor-pointer text-[#156cbc] hover:bg-[#0ca4d4] hover:text-white"
+                    >
+                      <div 
+                        className="flex items-center justify-between w-full" 
+                        onClick={() => router.push("/admin/medicine/list")}
+                      >
+                        <div className="flex-1">
+                          <div className="truncate">{medicine.name}</div>
+                          <div className="text-xs text-gray-500">
+                            Expires: {formatExpiryDate(medicine.expiryDate)}
+                          </div>
+                        </div>
+                        <span className={`text-xs font-medium whitespace-nowrap ml-2 ${expiryStatus.color}`}>
+                          {expiryStatus.text}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })
+              ) : (
+                <DropdownMenuItem className="cursor-pointer text-[#156cbc] justify-center">
+                  No near expiry medicines
+                </DropdownMenuItem>
+              )
             )}
           </DropdownMenuContent>
         </DropdownMenu>
