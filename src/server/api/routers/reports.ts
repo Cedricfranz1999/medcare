@@ -1,5 +1,5 @@
-import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { z } from "zod";
 
 export const medicineReportsRouter = createTRPCRouter({
   getMedicines: publicProcedure
@@ -73,6 +73,7 @@ export const medicineReportsRouter = createTRPCRouter({
         total,
       };
     }),
+
   getRequests: publicProcedure
     .input(
       z.object({
@@ -109,15 +110,38 @@ export const medicineReportsRouter = createTRPCRouter({
         orderBy: { requestedAt: "desc" },
       });
     }),
+
   getChartData: publicProcedure
     .input(
       z.object({
         dateFrom: z.date().optional(),
         dateTo: z.date().optional(),
+        stockFilter: z.enum(["all", "low", "out"]).optional(),
+        type: z.string().optional(),
+        category: z.string().optional(),
+        expiryFilter: z.enum(["all", "expired", "expiring"]).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const whereConditions: any = {};
+      if (input.stockFilter === "low") {
+        whereConditions.stock = { lte: 10, gt: 0 };
+      } else if (input.stockFilter === "out") {
+        whereConditions.stock = 0;
+      }
+      if (input.type && input.type !== "all") {
+        whereConditions.type = input.type;
+      }
+      if (input.category && input.category !== "all") {
+        whereConditions.categories = { some: { category: { name: input.category } } };
+      }
+      if (input.expiryFilter === "expired") {
+        whereConditions.expiryDate = { lt: new Date() };
+      } else if (input.expiryFilter === "expiring") {
+        const expiryThreshold = new Date();
+        expiryThreshold.setDate(expiryThreshold.getDate() + 30);
+        whereConditions.expiryDate = { lt: expiryThreshold, gte: new Date() };
+      }
       if (input.dateFrom || input.dateTo) {
         whereConditions.createdAt = {};
         if (input.dateFrom) {
@@ -157,6 +181,7 @@ export const medicineReportsRouter = createTRPCRouter({
         typeChart,
       };
     }),
+
   requestMedicine: publicProcedure
     .input(
       z.object({
@@ -192,88 +217,89 @@ export const medicineReportsRouter = createTRPCRouter({
       });
       return { success: true, requestId: request.id };
     }),
- exportMedicinesCSV: publicProcedure
-  .input(
-    z.object({
-      search: z.string().optional(),
-      stockFilter: z.enum(["all", "low", "out"]).optional(),
-      type: z.string().optional(),
-      category: z.string().optional(),
-      expiryFilter: z.enum(["all", "expired", "expiring"]).optional(),
-      dateFrom: z.date().optional(),
-      dateTo: z.date().optional(),
-    }),
-  )
-  .mutation(async ({ ctx, input }) => {
-    const whereConditions: any = {};
-    if (input.search) {
-      whereConditions.OR = [
-        { name: { contains: input.search, mode: "insensitive" } },
-        { brand: { contains: input.search, mode: "insensitive" } },
-      ];
-    }
-    if (input.stockFilter === "low") {
-      whereConditions.stock = { lte: 10, gt: 0 };
-    } else if (input.stockFilter === "out") {
-      whereConditions.stock = 0;
-    }
-    if (input.type && input.type !== "all") {
-      whereConditions.type = input.type;
-    }
-    if (input.category && input.category !== "all") {
-      whereConditions.categories = { some: { category: { name: input.category } } };
-    }
-    if (input.expiryFilter === "expired") {
-      whereConditions.expiryDate = { lt: new Date() };
-    } else if (input.expiryFilter === "expiring") {
-      const expiryThreshold = new Date();
-      expiryThreshold.setDate(expiryThreshold.getDate() + 30);
-      whereConditions.expiryDate = { lt: expiryThreshold, gte: new Date() };
-    }
-    if (input.dateFrom || input.dateTo) {
-      whereConditions.createdAt = {};
-      if (input.dateFrom) {
-        whereConditions.createdAt.gte = input.dateFrom;
+
+  exportMedicinesCSV: publicProcedure
+    .input(
+      z.object({
+        search: z.string().optional(),
+        stockFilter: z.enum(["all", "low", "out"]).optional(),
+        type: z.string().optional(),
+        category: z.string().optional(),
+        expiryFilter: z.enum(["all", "expired", "expiring"]).optional(),
+        dateFrom: z.date().optional(),
+        dateTo: z.date().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const whereConditions: any = {};
+      if (input.search) {
+        whereConditions.OR = [
+          { name: { contains: input.search, mode: "insensitive" } },
+          { brand: { contains: input.search, mode: "insensitive" } },
+        ];
       }
-      if (input.dateTo) {
-        whereConditions.createdAt.lte = input.dateTo;
+      if (input.stockFilter === "low") {
+        whereConditions.stock = { lte: 10, gt: 0 };
+      } else if (input.stockFilter === "out") {
+        whereConditions.stock = 0;
       }
-    }
-    const medicines = await ctx.db.medicine.findMany({
-      where: whereConditions,
-      include: {
-        categories: {
-          include: {
-            category: true,
+      if (input.type && input.type !== "all") {
+        whereConditions.type = input.type;
+      }
+      if (input.category && input.category !== "all") {
+        whereConditions.categories = { some: { category: { name: input.category } } };
+      }
+      if (input.expiryFilter === "expired") {
+        whereConditions.expiryDate = { lt: new Date() };
+      } else if (input.expiryFilter === "expiring") {
+        const expiryThreshold = new Date();
+        expiryThreshold.setDate(expiryThreshold.getDate() + 30);
+        whereConditions.expiryDate = { lt: expiryThreshold, gte: new Date() };
+      }
+      if (input.dateFrom || input.dateTo) {
+        whereConditions.createdAt = {};
+        if (input.dateFrom) {
+          whereConditions.createdAt.gte = input.dateFrom;
+        }
+        if (input.dateTo) {
+          whereConditions.createdAt.lte = input.dateTo;
+        }
+      }
+      const medicines = await ctx.db.medicine.findMany({
+        where: whereConditions,
+        include: {
+          categories: {
+            include: {
+              category: true,
+            },
           },
         },
-      },
-      orderBy: { name: "asc" },
-    });
-    const headers = [
-      "ID", "Name", "Brand", "Type", "Dosage Form", "Size", "Stock", "Recommended", "Created At", "Updated At", "Expiry Date", "Category"
-    ];
-    const csvRows = [
-      headers.join(","),
-      ...medicines.map((medicine) =>
-        [
-          medicine.id,
-          `"${medicine.name}"`,
-          `"${medicine.brand}"`,
-          medicine.type,
-          medicine.dosageForm,
-          medicine.size ? `"${medicine.size}"` : "",
-          medicine.stock,
-          medicine.recommended,
-          medicine.createdAt.toISOString(),
-          medicine.updatedAt.toISOString(),
-          medicine.expiryDate ? medicine.expiryDate.toISOString() : "",
-          `"${medicine.categories[0]?.category.name || "Uncategorized"}"`,
-        ].join(","),
-      ),
-    ];
-    return { csv: csvRows.join("\n") };
-  }),
+        orderBy: { name: "asc" },
+      });
+      const headers = [
+        "ID", "Name", "Brand", "Type", "Dosage Form", "Size", "Stock", "Recommended", "Created At", "Updated At", "Expiry Date", "Category"
+      ];
+      const csvRows = [
+        headers.join(","),
+        ...medicines.map((medicine) =>
+          [
+            medicine.id,
+            `"${medicine.name}"`,
+            `"${medicine.brand}"`,
+            medicine.type,
+            medicine.dosageForm,
+            medicine.size ? `"${medicine.size}"` : "",
+            medicine.stock,
+            medicine.recommended,
+            medicine.createdAt.toISOString(),
+            medicine.updatedAt.toISOString(),
+            medicine.expiryDate ? medicine.expiryDate.toISOString() : "",
+            `"${medicine.categories[0]?.category.name || "Uncategorized"}"`,
+          ].join(","),
+        ),
+      ];
+      return { csv: csvRows.join("\n") };
+    }),
 
   exportRequestsCSV: publicProcedure
     .input(

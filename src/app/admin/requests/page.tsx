@@ -1,5 +1,4 @@
 "use client";
-
 import { api } from "~/trpc/react";
 import { useToast } from "~/components/ui/use-toast";
 import { useState } from "react";
@@ -65,6 +64,12 @@ const statusConfig = {
       "bg-red-100 text-red-800 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800",
     icon: XCircle,
   },
+  APPROVED: {
+    label: "Approved",
+    color:
+      "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-800",
+    icon: CheckCircle,
+  },
 };
 
 interface MedicineRequest {
@@ -83,7 +88,7 @@ interface MedicineRequest {
     quantity: number;
   }[];
   reason: string;
-  status: "REQUESTED" | "GIVEN" | "CANCELLED";
+  status: "REQUESTED" | "GIVEN" | "CANCELLED" | "APPROVED";
   requestedAt: Date;
 }
 
@@ -94,9 +99,7 @@ export default function MedicineRequestsPage() {
   const [page, setPage] = useState(1);
   const [cancelReason, setCancelReason] = useState("");
   const [openCancelDialog, setOpenCancelDialog] = useState(false);
-  const [selectedRequest, setSelectedRequest] =
-    useState<MedicineRequest | null>(null);
-
+  const [selectedRequest, setSelectedRequest] = useState<MedicineRequest | null>(null);
   const pageSize = 10;
 
   const { data, isLoading, refetch } = api.medicineReqeust.getAll.useQuery({
@@ -106,7 +109,7 @@ export default function MedicineRequestsPage() {
     status:
       statusFilter === "all"
         ? undefined
-        : (statusFilter as "REQUESTED" | "GIVEN" | "CANCELLED"),
+        : (statusFilter as "REQUESTED" | "GIVEN" | "CANCELLED" | "APPROVED"),
   });
 
   const updateStatus = api.medicineReqeust.updateStatus.useMutation({
@@ -130,7 +133,7 @@ export default function MedicineRequestsPage() {
 
   const handleStatusChange = (
     request: MedicineRequest,
-    status: "GIVEN" | "CANCELLED",
+    status: "GIVEN" | "CANCELLED" | "APPROVED",
   ) => {
     if (status === "CANCELLED") {
       setSelectedRequest(request);
@@ -151,30 +154,25 @@ export default function MedicineRequestsPage() {
   };
 
   const getStatusCounts = () => {
-    if (!data) return { all: 0, REQUESTED: 0, GIVEN: 0, CANCELLED: 0 };
-
+    if (!data) return { all: 0, REQUESTED: 0, GIVEN: 0, CANCELLED: 0, APPROVED: 0 };
     const counts = data.requests.reduce(
       (acc, request) => {
         acc[request.status]++;
         acc.all++;
         return acc;
       },
-      { all: 0, REQUESTED: 0, GIVEN: 0, CANCELLED: 0 },
+      { all: 0, REQUESTED: 0, GIVEN: 0, CANCELLED: 0, APPROVED: 0 },
     );
-
     return counts;
   };
 
   const statusCounts = getStatusCounts();
 
-  // Mobile card component for responsive design
   const MobileRequestCard = ({ request }: { request: MedicineRequest }) => {
     const StatusIcon = statusConfig[request.status].icon;
-
     return (
       <Card className="mb-4 overflow-hidden border shadow-sm transition-shadow duration-200 hover:shadow-md">
         <CardContent className="p-4">
-          {/* Header with user and status */}
           <div className="mb-3 flex items-start justify-between">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-sm font-semibold text-white">
@@ -196,8 +194,6 @@ export default function MedicineRequestsPage() {
               {statusConfig[request.status].label}
             </Badge>
           </div>
-
-          {/* Medicines */}
           <div className="mb-3">
             <div className="text-muted-foreground mb-2 flex items-center gap-1 text-xs font-medium">
               <Package className="h-3 w-3" />
@@ -211,9 +207,9 @@ export default function MedicineRequestsPage() {
                 >
                   {item.medicine.image ? (
                     <Image
-                    unoptimized
-                    width={40}
-                    height={40}
+                      unoptimized
+                      width={40}
+                      height={40}
                       src={item.medicine.image || "/placeholder.svg"}
                       alt={item.medicine.name}
                       className="h-6 w-6 shrink-0 rounded object-cover"
@@ -228,15 +224,13 @@ export default function MedicineRequestsPage() {
                       {item.medicine.name}
                     </div>
                     <div className="text-muted-foreground text-xs">
-                      {item.medicine.brand} •  Qty: {item.quantity}
+                      {item.medicine.brand} • Qty: {item.quantity}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-
-          {/* Reason */}
           <div className="mb-3">
             <div className="text-muted-foreground mb-1 text-xs font-medium">
               Reason
@@ -245,8 +239,6 @@ export default function MedicineRequestsPage() {
               {request.reason}
             </p>
           </div>
-
-          {/* Footer with date and actions */}
           <div className="flex items-center justify-between border-t pt-2">
             <div className="text-muted-foreground flex items-center gap-1">
               <Calendar className="h-3 w-3" />
@@ -274,6 +266,15 @@ export default function MedicineRequestsPage() {
                     Mark as Given
                   </DropdownMenuItem>
                 )}
+                {request.status !== "APPROVED" && (
+                  <DropdownMenuItem
+                    onClick={() => handleStatusChange(request, "APPROVED")}
+                    className="text-blue-600 focus:text-blue-600"
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Mark as Approved
+                  </DropdownMenuItem>
+                )}
                 {request.status !== "CANCELLED" && (
                   <DropdownMenuItem
                     onClick={() => handleStatusChange(request, "CANCELLED")}
@@ -294,7 +295,6 @@ export default function MedicineRequestsPage() {
   return (
     <div className="bg-background min-h-[800px] rounded-sm">
       <Card className="border-none bg-white p-4 sm:space-y-6 sm:p-6">
-        {/* Header */}
         <div className="space-y-4">
           <div>
             <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-4xl font-bold text-[#0ca4d4] sm:text-5xl">
@@ -304,9 +304,7 @@ export default function MedicineRequestsPage() {
               Manage and track medicine requests from users
             </p>
           </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
             <Card className="border border-gray-300 shadow-sm transition-shadow duration-200 hover:shadow-md">
               <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center gap-2">
@@ -323,7 +321,6 @@ export default function MedicineRequestsPage() {
               </CardContent>
             </Card>
             <Card className="border border-gray-300 shadow-sm transition-shadow duration-200 hover:shadow-md">
-              {" "}
               <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center gap-2">
                   <div className="rounded-lg bg-amber-100 p-2 dark:bg-amber-950">
@@ -339,7 +336,6 @@ export default function MedicineRequestsPage() {
               </CardContent>
             </Card>
             <Card className="border border-gray-300 shadow-sm transition-shadow duration-200 hover:shadow-md">
-              {" "}
               <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center gap-2">
                   <div className="rounded-lg bg-emerald-100 p-2 dark:bg-emerald-950">
@@ -355,7 +351,6 @@ export default function MedicineRequestsPage() {
               </CardContent>
             </Card>
             <Card className="border border-gray-300 shadow-sm transition-shadow duration-200 hover:shadow-md">
-              {" "}
               <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center gap-2">
                   <div className="rounded-lg bg-red-100 p-2 dark:bg-red-950">
@@ -370,15 +365,26 @@ export default function MedicineRequestsPage() {
                 </div>
               </CardContent>
             </Card>
+            <Card className="border border-gray-300 shadow-sm transition-shadow duration-200 hover:shadow-md">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-950">
+                    <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-muted-foreground text-xs">Approved</p>
+                    <p className="truncate text-lg font-semibold sm:text-xl">
+                      {statusCounts.APPROVED}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
-
-        {/* Filters */}
         <Card className="border border-gray-300 shadow-sm transition-shadow duration-200 hover:shadow-md">
-          {" "}
           <CardContent className="p-4 sm:p-6">
             <div className="space-y-4">
-              {/* Search */}
               <div className="relative border-gray-300">
                 <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                 <Input
@@ -391,8 +397,6 @@ export default function MedicineRequestsPage() {
                   }}
                 />
               </div>
-
-              {/* Status Filter Tabs */}
               <div className="flex items-center gap-2">
                 <Filter className="text-muted-foreground h-4 w-4 shrink-0" />
                 <Tabs
@@ -400,7 +404,7 @@ export default function MedicineRequestsPage() {
                   onValueChange={setStatusFilter}
                   className="flex-1"
                 >
-                  <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
+                  <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-5">
                     <TabsTrigger
                       value="all"
                       className="px-2 py-2 text-xs data-[state=active]:bg-blue-300 data-[state=active]:text-white"
@@ -437,14 +441,21 @@ export default function MedicineRequestsPage() {
                         Cancelled ({statusCounts.CANCELLED})
                       </span>
                     </TabsTrigger>
+                    <TabsTrigger
+                      value="APPROVED"
+                      className="px-2 py-2 text-xs data-[state=active]:bg-blue-300 data-[state=active]:text-white"
+                    >
+                      <span className="block sm:hidden">Approved</span>
+                      <span className="hidden sm:block">
+                        Approved ({statusCounts.APPROVED})
+                      </span>
+                    </TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Content */}
         <Card className="border border-gray-300 shadow-sm transition-shadow duration-200 hover:shadow-md">
           <CardContent className="p-0">
             {isLoading ? (
@@ -462,18 +473,15 @@ export default function MedicineRequestsPage() {
               </div>
             ) : data?.requests.length ? (
               <>
-                {/* Mobile View */}
                 <div className="block p-4 lg:hidden">
                   {data.requests.map((request) => (
                     <MobileRequestCard key={request.id} request={request} />
                   ))}
                 </div>
-
-                {/* Desktop Table View */}
                 <div className="hidden overflow-x-auto lg:block">
-                  <Table className="border-gray-300">
+                  <Table className="border-gray-200">
                     <TableHeader>
-                      <TableRow className="bg-muted/50 hover:bg-muted/50 border-gray-300">
+                      <TableRow className="bg-muted/50 hover:bg-muted/50 border-gray-200">
                         <TableHead className="font-semibold">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4" />
@@ -505,7 +513,7 @@ export default function MedicineRequestsPage() {
                         return (
                           <TableRow
                             key={request.id}
-                            className="hover:bg-muted/30 transition-colors duration-150"
+                            className="hover:bg-muted/30 transition-colors duration-150  border   border-gray-300"
                           >
                             <TableCell className="min-w-[180px]">
                               <div className="flex items-center gap-3">
@@ -531,8 +539,9 @@ export default function MedicineRequestsPage() {
                                   >
                                     {item.medicine.image ? (
                                       <Image
-                                      unoptimized
-                                      
+                                        unoptimized
+                                        width={40}
+                                        height={40}
                                         src={
                                           item.medicine.image ||
                                           "/placeholder.svg"
@@ -609,20 +618,25 @@ export default function MedicineRequestsPage() {
                                 >
                                   {request.status !== "GIVEN" && (
                                     <DropdownMenuItem
-                                      onClick={() =>
-                                        handleStatusChange(request, "GIVEN")
-                                      }
+                                      onClick={() => handleStatusChange(request, "GIVEN")}
                                       className="text-emerald-600 focus:text-emerald-600"
                                     >
                                       <CheckCircle className="mr-2 h-4 w-4" />
                                       Mark as Given
                                     </DropdownMenuItem>
                                   )}
+                                  {request.status !== "APPROVED" && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleStatusChange(request, "APPROVED")}
+                                      className="text-blue-600 focus:text-blue-600"
+                                    >
+                                      <CheckCircle className="mr-2 h-4 w-4" />
+                                      Mark as Approved
+                                    </DropdownMenuItem>
+                                  )}
                                   {request.status !== "CANCELLED" && (
                                     <DropdownMenuItem
-                                      onClick={() =>
-                                        handleStatusChange(request, "CANCELLED")
-                                      }
+                                      onClick={() => handleStatusChange(request, "CANCELLED")}
                                       className="text-red-600 focus:text-red-600"
                                     >
                                       <XCircle className="mr-2 h-4 w-4" />
@@ -638,8 +652,6 @@ export default function MedicineRequestsPage() {
                     </TableBody>
                   </Table>
                 </div>
-
-                {/* Pagination */}
                 <div className="flex flex-col items-center justify-between gap-4 border-t p-4 sm:flex-row sm:p-6">
                   <div className="text-muted-foreground text-center text-sm sm:text-left">
                     Showing {(page - 1) * pageSize + 1} to{" "}
@@ -710,8 +722,6 @@ export default function MedicineRequestsPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Cancel Dialog */}
         <AlertDialog open={openCancelDialog} onOpenChange={setOpenCancelDialog}>
           <AlertDialogContent className="mx-4 max-w-md bg-white">
             <AlertDialogHeader>

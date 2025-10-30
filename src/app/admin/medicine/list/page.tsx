@@ -313,7 +313,7 @@ const MedicinesPage = () => {
               <Package className="h-8 w-8 text-[#0ca4d4]" />
             </div>
             <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-4xl font-bold text-[#0ca4d4] sm:text-5xl">
-              Medicine List
+              Medicine Stock
             </h1>{" "}
           </CardTitle>
         </CardHeader>

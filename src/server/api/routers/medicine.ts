@@ -15,14 +15,12 @@ export const medicineRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const where: Prisma.MedicineWhereInput = {};
-
       if (input.search) {
         where.OR = [
           { name: { contains: input.search, mode: "insensitive" } },
           { brand: { contains: input.search, mode: "insensitive" } },
         ];
       }
-
       if (input.categoryId) {
         where.categories = {
           some: {
@@ -30,7 +28,6 @@ export const medicineRouter = createTRPCRouter({
           },
         };
       }
-
       const total = await ctx.db.medicine.count({ where });
       const data = await ctx.db.medicine.findMany({
         where,
@@ -45,9 +42,9 @@ export const medicineRouter = createTRPCRouter({
           },
         },
       });
-
       return { data, total };
     }),
+
   getById: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
@@ -87,8 +84,6 @@ export const medicineRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      console.log("Input data:", input);
-      
       const data = {
         name: input.name,
         brand: input.brand,
@@ -100,7 +95,6 @@ export const medicineRouter = createTRPCRouter({
         stock: input.stock,
         image: input.image,
       };
-
       if (input.id) {
         // Update existing medicine
         const medicine = await ctx.db.medicine.update({
@@ -109,7 +103,6 @@ export const medicineRouter = createTRPCRouter({
             ...data,
             categories: input.categoryIds
               ? {
-                  // Delete existing connections and create new ones
                   deleteMany: {},
                   create: input.categoryIds.map((categoryId) => ({
                     categoryId,
@@ -125,7 +118,6 @@ export const medicineRouter = createTRPCRouter({
             },
           },
         });
-
         return medicine;
       } else {
         // Create new medicine
@@ -148,7 +140,6 @@ export const medicineRouter = createTRPCRouter({
             },
           },
         });
-
         return medicine;
       }
     }),
@@ -178,7 +169,7 @@ export const medicineRouter = createTRPCRouter({
     const medicines = await ctx.db.medicine.findMany({
       where: {
         stock: {
-          lte: 10, 
+          lte: 10,
         },
       },
       orderBy: { stock: "asc" },
@@ -198,7 +189,7 @@ export const medicineRouter = createTRPCRouter({
     const today = new Date();
     const twoMonthsFromNow = new Date();
     twoMonthsFromNow.setMonth(today.getMonth() + 2);
-    
+
     const medicines = await ctx.db.medicine.findMany({
       where: {
         expiryDate: {
@@ -222,7 +213,7 @@ export const medicineRouter = createTRPCRouter({
 
   getExpired: publicProcedure.query(async ({ ctx }) => {
     const today = new Date();
-    
+
     const medicines = await ctx.db.medicine.findMany({
       where: {
         expiryDate: {
@@ -256,7 +247,7 @@ export const medicineRouter = createTRPCRouter({
     .input(z.object({ to: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
       await ctx.db.medicine.updateMany({
-        where: { stock: { lte: 10 } }, 
+        where: { stock: { lte: 10 } },
         data: { notificationopen: input.to },
       });
       return { success: true };
@@ -268,14 +259,14 @@ export const medicineRouter = createTRPCRouter({
       const today = new Date();
       const twoMonthsFromNow = new Date();
       twoMonthsFromNow.setMonth(today.getMonth() + 2);
-      
+
       await ctx.db.medicine.updateMany({
-        where: { 
+        where: {
           expiryDate: {
             lte: twoMonthsFromNow,
             gte: today,
           }
-        }, 
+        },
         data: { notificationopen: input.to },
       });
       return { success: true };
@@ -285,7 +276,7 @@ export const medicineRouter = createTRPCRouter({
     const medicines = await ctx.db.medicine.findMany({
       where: {
         stock: {
-          lte: 10, 
+          lte: 10,
         },
         notificationopen: true
       },
@@ -306,7 +297,7 @@ export const medicineRouter = createTRPCRouter({
     const today = new Date();
     const twoMonthsFromNow = new Date();
     twoMonthsFromNow.setMonth(today.getMonth() + 2);
-    
+
     const medicines = await ctx.db.medicine.findMany({
       where: {
         expiryDate: {
@@ -331,7 +322,7 @@ export const medicineRouter = createTRPCRouter({
 
   getExpiredCount: publicProcedure.query(async ({ ctx }) => {
     const today = new Date();
-    
+
     const medicines = await ctx.db.medicine.findMany({
       where: {
         expiryDate: {

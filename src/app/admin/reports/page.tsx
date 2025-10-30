@@ -104,10 +104,37 @@ interface MedicineRequest {
   }[];
 }
 
+const PrintHeader = ({ dateRange }: { dateRange: { from: Date | undefined; to: Date | undefined } }) => {
+  return (
+    <div className="mb-6 flex items-center justify-between">
+      <div>
+        <img src="/logo2.png" alt="MedCare Logo" className="h-12" />
+      </div>
+      <div className="text-center">
+        <h2 className="text-xl font-bold">Medicine Inventory Report</h2>
+        <p className="text-sm text-gray-600">
+          {dateRange.from && dateRange.to
+            ? `${format(dateRange.from, "MMMM dd, yyyy")} - ${format(dateRange.to, "MMMM dd, yyyy")}`
+            : "All Dates"}
+        </p>
+      </div>
+    <div>
+  <img 
+    src="/logo1.png" 
+    alt="MedCare Logo" 
+    className="h-14 w-14 rounded-full object-cover" 
+  />
+</div>
+
+    </div>
+  );
+};
+
 const MedicineReportsPage = () => {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
@@ -118,13 +145,48 @@ const MedicineReportsPage = () => {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [expiryFilter, setExpiryFilter] = useState<"all" | "expired" | "expiring">("all");
-  const pageSize = 10;
+
   const printRef = useRef<HTMLDivElement>(null);
 
-  // Fixed: Use contentRef instead of content
+  // Fixed print function - using contentRef instead of content
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: "Medicine Inventory Report",
+    pageStyle: `
+      @media print {
+        body { 
+          -webkit-print-color-adjust: exact; 
+          background-color: white !important;
+        }
+        .print-container * {
+          background-color: white !important;
+          color: black !important;
+        }
+        @page {
+          margin: 0.5in;
+        }
+      }
+    `,
+    onAfterPrint: () => {
+      toast({
+        title: "✅ Print Complete",
+        description: "Report printed successfully",
+        variant: "default",
+        style: {
+          backgroundColor: "white",
+        },
+      });
+    },
+    onPrintError: () => {
+      toast({
+        title: "❌ Print Error",
+        description: "Failed to print report",
+        variant: "destructive",
+        style: {
+          backgroundColor: "white",
+        },
+      });
+    }
   });
 
   const {
@@ -151,6 +213,10 @@ const MedicineReportsPage = () => {
   const { data: chartData } = api.reporstData.getChartData.useQuery({
     dateFrom: dateRange.from,
     dateTo: dateRange.to,
+    stockFilter,
+    type: typeFilter,
+    category: categoryFilter,
+    expiryFilter,
   });
 
   const requestMutation = api.reporstData.requestMedicine.useMutation({
@@ -159,6 +225,9 @@ const MedicineReportsPage = () => {
         title: "✅ Success!",
         description: "Medicine request submitted successfully",
         variant: "default",
+        style: {
+          backgroundColor: "white",
+        },
       });
       setRequestDialogOpen(false);
       setSelectedMedicine(null);
@@ -169,6 +238,9 @@ const MedicineReportsPage = () => {
         title: "❌ Error",
         description: error.message,
         variant: "destructive",
+        style: {
+          backgroundColor: "white",
+        },
       });
     },
   });
@@ -188,6 +260,9 @@ const MedicineReportsPage = () => {
         title: "📊 Export Complete",
         description: "Medicine inventory CSV downloaded successfully",
         variant: "default",
+        style: {
+          backgroundColor: "white",
+        },
       });
     },
   });
@@ -207,6 +282,9 @@ const MedicineReportsPage = () => {
         title: "📊 Export Complete",
         description: "Medicine requests CSV downloaded successfully",
         variant: "default",
+        style: {
+          backgroundColor: "white",
+        },
       });
     },
   });
@@ -256,10 +334,10 @@ const MedicineReportsPage = () => {
     },
   };
 
-  const pieColors = [
-    "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
-    "#06b6d4", "#84cc16", "#f97316", "#ec4899", "#6366f1",
-  ];
+  const pieColors = {
+    OTC: "#3b82f6",
+    PRESCRIPTION: "#ef4444",
+  };
 
   return (
     <div className="min-h-screen bg-white bg-gradient-to-br">
@@ -273,7 +351,7 @@ const MedicineReportsPage = () => {
           </div>
           <div className="flex gap-2">
             <Button
-              onClick={handlePrint}
+              onClick={() => handlePrint()}
               variant="outline"
               className="flex items-center gap-2 bg-transparent"
             >
@@ -384,9 +462,18 @@ const MedicineReportsPage = () => {
                 <ChartContainer config={chartConfig} className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={chartData.typeChart} cx="50%" cy="50%" outerRadius={80} fill="#453cf3" className="bg-[#453cf3]" dataKey="count" label={({ name, value }) => `${name}: ${value}`} labelLine={false} style={{ fontSize: "12px", fill: "#f97316" }}>
+                      <Pie
+                        data={chartData.typeChart}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="count"
+                        label={({ name, value }) => `${name}: ${value}`}
+                        labelLine={false}
+                      >
                         {chartData.typeChart.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                          <Cell key={`cell-${index}`} fill={pieColors[entry.name as keyof typeof pieColors]} />
                         ))}
                       </Pie>
                       <ChartTooltip contentStyle={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }} />
@@ -461,89 +548,210 @@ const MedicineReportsPage = () => {
           </CardContent>
         </Card>
 
-        {/* Wrap the entire printable content in a div with the printRef */}
-        <div ref={printRef}>
-          <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
-            <CardHeader>
-              <CardTitle>Medicine Inventory</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {medicinesLoading ? (
-                <div className="space-y-3">
-                  {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-gray-300">
-                        <TableHead>Medicine</TableHead>
-                        <TableHead>Brand</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Stock</TableHead>
-                        <TableHead>Expiry</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {medicinesData?.data.map((medicine) => (
-                        <TableRow key={medicine.id} className="border-gray-300">
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{medicine.name}</div>
-                              <div className="text-sm text-gray-500">{medicine.dosageForm} {medicine.size && `- ${medicine.size}`}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>{medicine.brand}</TableCell>
-                          <TableCell><Badge variant="outline">{medicine.type}</Badge></TableCell>
-                          <TableCell>{medicine.category}</TableCell>
-                          <TableCell>
-                            <span className={cn("font-medium", medicine.stock === 0 ? "text-red-600" : medicine.stock <= 10 ? "text-orange-600" : "text-green-600")}>
-                              {medicine.stock}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            {medicine.expiryDate ? format(new Date(medicine.expiryDate), "MMM dd, yyyy") : "N/A"}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={medicine.stock === 0 ? "destructive" : medicine.stock <= 10 ? "secondary" : "default"}>
-                              {medicine.stock === 0 ? "Out of Stock" : medicine.stock <= 10 ? "Low Stock" : "In Stock"}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
-            <CardHeader>
-              <CardTitle>Recent Medicine Requests</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {requestsData?.slice(0, 5).map((request) => (
-                  <div key={request.id} className="flex items-center justify-between border-b pb-4">
-                    <div>
-                      <div className="font-medium">{request.user.name}</div>
-                      <div className="text-sm text-gray-500">{request.reason}</div>
-                      <div className="text-xs text-gray-400">{format(new Date(request.requestedAt), "MMM dd, yyyy")}</div>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant={request.status === "GIVEN" ? "default" : request.status === "CANCELLED" ? "destructive" : "secondary"}>
-                        {request.status}
-                      </Badge>
-                      <div className="mt-1 text-sm text-gray-500">{request.medicines.length} item(s)</div>
-                    </div>
+        {/* Print content - this is what will be printed */}
+        <div style={{ display: "none" }}>
+          <div ref={printRef} className="print-container p-6 bg-white">
+            <PrintHeader dateRange={dateRange} />
+            <Card className="rounded-lg border border-gray-300 shadow-md mb-6">
+              <CardHeader>
+                <CardTitle>Medicine Inventory</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {medicinesLoading ? (
+                  <div className="space-y-3">
+                    {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
                   </div>
-                ))}
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-300">
+                          <TableHead>Medicine</TableHead>
+                          <TableHead>Brand</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Stock</TableHead>
+                          <TableHead>Expiry</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {medicinesData?.data.map((medicine) => (
+                          <TableRow key={medicine.id} className="border-gray-300">
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{medicine.name}</div>
+                                <div className="text-sm text-gray-500">{medicine.dosageForm} {medicine.size && `- ${medicine.size}`}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{medicine.brand}</TableCell>
+                            <TableCell><Badge variant="outline">{medicine.type}</Badge></TableCell>
+                            <TableCell>{medicine.category}</TableCell>
+                            <TableCell>
+                              <span className={cn("font-medium", medicine.stock === 0 ? "text-red-600" : medicine.stock <= 10 ? "text-orange-600" : "text-green-600")}>
+                                {medicine.stock}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {medicine.expiryDate ? format(new Date(medicine.expiryDate), "MMM dd, yyyy") : "N/A"}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={medicine.stock === 0 ? "destructive" : medicine.stock <= 10 ? "secondary" : "default"}>
+                                {medicine.stock === 0 ? "Out of Stock" : medicine.stock <= 10 ? "Low Stock" : "In Stock"}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="rounded-lg border border-gray-300 shadow-md">
+              <CardHeader>
+                <CardTitle>All Medicine Requests</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {requestsData?.map((request) => (
+                    <div key={request.id} className="flex items-center justify-between border-b pb-4">
+                      <div>
+                        <div className="font-medium">{request.user.name}</div>
+                        <div className="text-sm text-gray-500">{request.reason}</div>
+                        <div className="text-xs text-gray-400">{format(new Date(request.requestedAt), "MMM dd, yyyy")}</div>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant={request.status === "GIVEN" ? "default" : request.status === "CANCELLED" ? "destructive" : "secondary"}>
+                          {request.status}
+                        </Badge>
+                        <div className="mt-1 text-sm text-gray-500">{request.medicines.length} item(s)</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Regular display content */}
+        <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+          <CardHeader>
+            <CardTitle>Medicine Inventory</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {medicinesLoading ? (
+              <div className="space-y-3">
+                {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
               </div>
-            </CardContent>
-          </Card>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-300">
+                      <TableHead>Medicine</TableHead>
+                      <TableHead>Brand</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Stock</TableHead>
+                      <TableHead>Expiry</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {medicinesData?.data.map((medicine) => (
+                      <TableRow key={medicine.id} className="border-gray-300">
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{medicine.name}</div>
+                            <div className="text-sm text-gray-500">{medicine.dosageForm} {medicine.size && `- ${medicine.size}`}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{medicine.brand}</TableCell>
+                        <TableCell><Badge variant="outline">{medicine.type}</Badge></TableCell>
+                        <TableCell>{medicine.category}</TableCell>
+                        <TableCell>
+                          <span className={cn("font-medium", medicine.stock === 0 ? "text-red-600" : medicine.stock <= 10 ? "text-orange-600" : "text-green-600")}>
+                            {medicine.stock}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {medicine.expiryDate ? format(new Date(medicine.expiryDate), "MMM dd, yyyy") : "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={medicine.stock === 0 ? "destructive" : medicine.stock <= 10 ? "secondary" : "default"}>
+                            {medicine.stock === 0 ? "Out of Stock" : medicine.stock <= 10 ? "Low Stock" : "In Stock"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+          <CardHeader>
+            <CardTitle>All Medicine Requests</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {requestsData?.map((request) => (
+                <div key={request.id} className="flex items-center justify-between border-b pb-4">
+                  <div>
+                    <div className="font-medium">{request.user.name}</div>
+                    <div className="text-sm text-gray-500">{request.reason}</div>
+                    <div className="text-xs text-gray-400">{format(new Date(request.requestedAt), "MMM dd, yyyy")}</div>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant={request.status === "GIVEN" ? "default" : request.status === "CANCELLED" ? "destructive" : "secondary"}>
+                      {request.status}
+                    </Badge>
+                    <div className="mt-1 text-sm text-gray-500">{request.medicines.length} item(s)</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Select value={pageSize.toString()} onValueChange={(value) => { setPageSize(Number(value)); setPage(1); }}>
+              <SelectTrigger className="w-[100px]">
+                <SelectValue placeholder="Page size" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </Button>
+            <span className="text-sm">
+              Page {page} of {Math.ceil((medicinesData?.total || 0) / pageSize)}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page >= Math.ceil((medicinesData?.total || 0) / pageSize)}
+            >
+              Next
+            </Button>
+          </div>
         </div>
 
         <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>

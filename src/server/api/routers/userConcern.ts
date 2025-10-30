@@ -1,9 +1,7 @@
-// ~/server/api/routers/userConcern.ts
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
 export const userConcernRouter = createTRPCRouter({
-  // Get all user concerns
   getAll: publicProcedure
     .input(
       z.object({
@@ -37,7 +35,6 @@ export const userConcernRouter = createTRPCRouter({
       return { data, total };
     }),
 
-  // Get a user concern by ID
   getById: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
@@ -49,7 +46,6 @@ export const userConcernRouter = createTRPCRouter({
       });
     }),
 
-  // Create or update a user concern
   createOrUpdate: publicProcedure
     .input(
       z.object({
@@ -57,12 +53,13 @@ export const userConcernRouter = createTRPCRouter({
         userId: z.number(),
         subject: z.string().min(1, "Subject is required"),
         description: z.string().min(1, "Description is required"),
-        status: z.enum(["PENDING", "IN_REVIEW", "RESOLVED", "CLOSED"]).optional(),
+        status: z
+          .enum(["PENDING", "IN_REVIEW", "RESOLVED", "CLOSED", "ARCHIVED"])
+          .optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       if (input.id) {
-        // Update existing user concern
         return ctx.db.userConcern.update({
           where: { id: input.id },
           data: {
@@ -75,7 +72,6 @@ export const userConcernRouter = createTRPCRouter({
           },
         });
       } else {
-        // Create new user concern
         return ctx.db.userConcern.create({
           data: {
             userId: input.userId,
@@ -90,7 +86,6 @@ export const userConcernRouter = createTRPCRouter({
       }
     }),
 
-  // Delete a user concern
   delete: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
@@ -99,17 +94,18 @@ export const userConcernRouter = createTRPCRouter({
       });
       return { message: "User concern deleted successfully" };
     }),
-    updateStatus: publicProcedure
-  .input(
-    z.object({
-      id: z.number(),
-      status: z.enum(["PENDING", "IN_REVIEW", "RESOLVED", "CLOSED"]),
-    })
-  )
-  .mutation(async ({ ctx, input }) => {
-    return ctx.db.userConcern.update({
-      where: { id: input.id },
-      data: { status: input.status },
-    });
-  }),
+
+  updateStatus: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        status: z.enum(["PENDING", "IN_REVIEW", "RESOLVED", "CLOSED", "ARCHIVED"]),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.userConcern.update({
+        where: { id: input.id },
+        data: { status: input.status },
+      });
+    }),
 });

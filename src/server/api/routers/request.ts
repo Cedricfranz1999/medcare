@@ -7,7 +7,7 @@ export const medicineRequestsRouter = createTRPCRouter({
   getAll: publicProcedure
     .input(
       z.object({
-        status: z.enum(["REQUESTED", "GIVEN", "CANCELLED"]).optional(),
+        status: z.enum(["REQUESTED", "GIVEN", "CANCELLED", "APPROVED"]).optional(),
         skip: z.number().optional(),
         take: z.number().optional(),
         search: z.string().optional(),
@@ -15,11 +15,9 @@ export const medicineRequestsRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const where: Prisma.MedicineRequestorWhereInput = {};
-
       if (input.status) {
         where.status = input.status;
       }
-
       if (input.search) {
         where.OR = [
           {
@@ -48,7 +46,6 @@ export const medicineRequestsRouter = createTRPCRouter({
           },
         ];
       }
-
       const [requests, total] = await Promise.all([
         ctx.db.medicineRequestor.findMany({
           where,
@@ -66,7 +63,6 @@ export const medicineRequestsRouter = createTRPCRouter({
         }),
         ctx.db.medicineRequestor.count({ where }),
       ]);
-
       return { requests, total };
     }),
 
@@ -74,7 +70,7 @@ export const medicineRequestsRouter = createTRPCRouter({
     .input(
       z.object({
         id: z.number(),
-        status: z.enum(["REQUESTED", "GIVEN", "CANCELLED"]),
+        status: z.enum(["REQUESTED", "GIVEN", "CANCELLED", "APPROVED"]),
         cancelledReason: z.string().optional(),
       }),
     )
@@ -83,13 +79,13 @@ export const medicineRequestsRouter = createTRPCRouter({
         status: input.status,
         updatedAt: new Date(),
       };
-
       if (input.status === "GIVEN") {
         data.givenAt = new Date();
       } else if (input.status === "CANCELLED") {
         data.cancelledReason = input.cancelledReason;
+      } else if (input.status === "APPROVED") {
+        data.approvedAt = new Date();
       }
-
       return ctx.db.medicineRequestor.update({
         where: { id: input.id },
         data,

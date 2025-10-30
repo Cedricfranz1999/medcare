@@ -154,6 +154,7 @@ enum RequestStatus {
   REQUESTED
   GIVEN
   CANCELLED
+  APPROVED
 }
 
 enum DosageForm {
@@ -176,4 +177,5 @@ enum ConcernStatus {
   IN_REVIEW
   RESOLVED
   CLOSED
+  ARCHIVED
 }
