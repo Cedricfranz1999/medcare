@@ -673,7 +673,7 @@ const MedicineReportsPage = () => {
             </div>
           </CardContent>
         </Card>
-        <div className="flex items-center justify-between p-6">
+        {/* <div className="flex items-center justify-between p-6">
           <div className="flex items-center gap-2 bg-white">
             <Select
               value={pageSize.toString()}
@@ -718,7 +718,7 @@ const MedicineReportsPage = () => {
               Next
             </Button>
           </div>
-        </div>
+        </div> */}
 
         {/* Print content - this is what will be printed */}
         <div style={{ display: "none" }}>
