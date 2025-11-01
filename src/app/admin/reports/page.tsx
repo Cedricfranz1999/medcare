@@ -142,7 +142,7 @@ const MedicineReportsPage = () => {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(100);
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(
     null,
@@ -673,6 +673,52 @@ const MedicineReportsPage = () => {
             </div>
           </CardContent>
         </Card>
+        <div className="flex items-center justify-between p-6">
+          <div className="flex items-center gap-2 bg-white">
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue placeholder="Page size" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                <SelectItem value="1000">display all</SelectItem>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </Button>
+            <span className="text-sm">
+              Page {page} of {Math.ceil((medicinesData?.total || 0) / pageSize)}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={
+                page >= Math.ceil((medicinesData?.total || 0) / pageSize)
+              }
+            >
+              Next
+            </Button>
+          </div>
+        </div>
 
         {/* Print content - this is what will be printed */}
         <div style={{ display: "none" }}>
@@ -778,7 +824,7 @@ const MedicineReportsPage = () => {
               <CardHeader>
                 <CardTitle>All Medicine Requests</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="bg-red-500">
                 <div className="space-y-4">
                   {requestsData?.map((request) => (
                     <div
@@ -822,7 +868,7 @@ const MedicineReportsPage = () => {
         </div>
 
         {/* Regular display content */}
-        <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+        <Card className="max-h-[600px] overflow-scroll rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
           <CardHeader>
             <CardTitle>Medicine Inventory</CardTitle>
           </CardHeader>
@@ -913,11 +959,11 @@ const MedicineReportsPage = () => {
             )}
           </CardContent>
         </Card>
-        <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+        <Card className="max-h-[600px] overflow-scroll rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
           <CardHeader>
             <CardTitle>All Medicine Requests</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="">
             <div className="space-y-4">
               {requestsData?.map((request) => (
                 <div
@@ -954,51 +1000,6 @@ const MedicineReportsPage = () => {
             </div>
           </CardContent>
         </Card>
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Select
-              value={pageSize.toString()}
-              onValueChange={(value) => {
-                setPageSize(Number(value));
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[100px]">
-                <SelectValue placeholder="Page size" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              Previous
-            </Button>
-            <span className="text-sm">
-              Page {page} of {Math.ceil((medicinesData?.total || 0) / pageSize)}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => p + 1)}
-              disabled={
-                page >= Math.ceil((medicinesData?.total || 0) / pageSize)
-              }
-            >
-              Next
-            </Button>
-          </div>
-        </div>
 
         <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
           <DialogContent>
