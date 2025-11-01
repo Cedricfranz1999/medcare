@@ -30,7 +30,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Eye } from "lucide-react";
 
 const VisuallyHidden = ({ children }: { children: React.ReactNode }) => (
-  <div style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: 0 }}>
+  <div
+    style={{
+      position: "absolute",
+      width: 1,
+      height: 1,
+      padding: 0,
+      margin: -1,
+      overflow: "hidden",
+      clip: "rect(0, 0, 0, 0)",
+      whiteSpace: "nowrap",
+      border: 0,
+    }}
+  >
     {children}
   </div>
 );
@@ -38,27 +50,25 @@ const VisuallyHidden = ({ children }: { children: React.ReactNode }) => (
 const UserConcernPage = () => {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<
-    | "ALL"
-    | "PENDING"
-    | "IN_REVIEW"
-    | "RESOLVED"
-    | "CLOSED"
+    "ALL" | "PENDING" | "IN_REVIEW" | "RESOLVED" | "CLOSED"
   >("ALL");
   const [activeTab, setActiveTab] = useState("active");
   const [skip, setSkip] = useState(0);
   const take = 10;
-  const { data: activeData, refetch: refetchActive } = api.userConcern.getAll.useQuery({
-    skip,
-    take,
-    search,
-    status: status === "ALL" ? undefined : status,
-  });
-  const { data: archivedData, refetch: refetchArchived } = api.userConcern.getAll.useQuery({
-    skip,
-    take,
-    search,
-    status: "ARCHIVED",
-  });
+  const { data: activeData, refetch: refetchActive } =
+    api.userConcern.getAll.useQuery({
+      skip,
+      take,
+      search,
+      status: status === "ALL" ? undefined : status,
+    });
+  const { data: archivedData, refetch: refetchArchived } =
+    api.userConcern.getAll.useQuery({
+      skip,
+      take,
+      search,
+      status: "ARCHIVED",
+    });
   const { mutate: updateStatus } = api.userConcern.updateStatus.useMutation({
     onSuccess: () => {
       refetchActive();
@@ -78,7 +88,7 @@ const UserConcernPage = () => {
   };
 
   const handleStatusChange = (
-    value: "ALL" | "PENDING" | "IN_REVIEW" | "RESOLVED" | "CLOSED"
+    value: "ALL" | "PENDING" | "IN_REVIEW" | "RESOLVED" | "CLOSED",
   ) => {
     setStatus(value);
     setSkip(0);
@@ -129,7 +139,7 @@ const UserConcernPage = () => {
 
   const handleUpdateStatus = (
     id: number,
-    newStatus: "PENDING" | "IN_REVIEW" | "RESOLVED" | "CLOSED" | "ARCHIVED"
+    newStatus: "PENDING" | "IN_REVIEW" | "RESOLVED" | "CLOSED" | "ARCHIVED",
   ) => {
     updateStatus({ id, status: newStatus });
   };
@@ -144,7 +154,7 @@ const UserConcernPage = () => {
   };
 
   return (
-    <div className="p-6 bg-white">
+    <div className="bg-white p-6">
       <h1 className="mb-6 text-2xl font-bold">User Concerns</h1>
       <div className="mb-4 flex gap-4">
         <div className="flex-1">
@@ -169,7 +179,6 @@ const UserConcernPage = () => {
               <SelectItem value="PENDING">Pending</SelectItem>
               <SelectItem value="IN_REVIEW">In Review</SelectItem>
               <SelectItem value="RESOLVED">Resolved</SelectItem>
-              <SelectItem value="CLOSED">Closed</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -207,16 +216,22 @@ const UserConcernPage = () => {
                       <TableCell>{concern.user?.name}</TableCell>
                       <TableCell>{concern.subject}</TableCell>
                       <TableCell>
-                        <Dialog > 
+                        <Dialog>
                           <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="p-0 h-auto text-left">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto p-0 text-left"
+                            >
                               <span className="flex items-center gap-1">
                                 {truncateDescription(concern.description, 50)}
-                              <Eye className={`h-3.5 w-3.5 text-gray-500 hover:text-gray-700 ${concern.description !== ""?'':'hidden'}`} />
+                                <Eye
+                                  className={`h-3.5 w-3.5 text-gray-500 hover:text-gray-700 ${concern.description !== "" ? "" : "hidden"}`}
+                                />
                               </span>
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className=" bg-white">
+                          <DialogContent className="bg-white">
                             <VisuallyHidden>
                               <DialogTitle>Full Description</DialogTitle>
                             </VisuallyHidden>
@@ -234,8 +249,7 @@ const UserConcernPage = () => {
                                 | "PENDING"
                                 | "IN_REVIEW"
                                 | "RESOLVED"
-                                | "CLOSED"
-                                | "ARCHIVED"
+                                | "ARCHIVED",
                             )
                           }
                         >
@@ -253,7 +267,6 @@ const UserConcernPage = () => {
                             <SelectItem value="PENDING">Pending</SelectItem>
                             <SelectItem value="IN_REVIEW">In Review</SelectItem>
                             <SelectItem value="RESOLVED">Resolved</SelectItem>
-                            <SelectItem value="CLOSED">Closed</SelectItem>
                             <SelectItem value="ARCHIVED">Archived</SelectItem>
                           </SelectContent>
                         </Select>
@@ -291,10 +304,16 @@ const UserConcernPage = () => {
                     <TableCell>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="p-0 h-auto text-left">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto p-0 text-left"
+                          >
                             <span className="flex items-center gap-1">
                               {truncateDescription(concern.description, 50)}
-                              <Eye className={`h-3.5 w-3.5 text-gray-500 hover:text-gray-700 ${concern.description == ""?'':'hidden'}`} />
+                              <Eye
+                                className={`h-3.5 w-3.5 text-gray-500 hover:text-gray-700 ${concern.description == "" ? "" : "hidden"}`}
+                              />
                             </span>
                           </Button>
                         </DialogTrigger>
@@ -316,8 +335,7 @@ const UserConcernPage = () => {
                               | "PENDING"
                               | "IN_REVIEW"
                               | "RESOLVED"
-                              | "CLOSED"
-                              | "ARCHIVED"
+                              | "ARCHIVED",
                           )
                         }
                       >
@@ -335,7 +353,6 @@ const UserConcernPage = () => {
                           <SelectItem value="PENDING">Pending</SelectItem>
                           <SelectItem value="IN_REVIEW">In Review</SelectItem>
                           <SelectItem value="RESOLVED">Resolved</SelectItem>
-                          <SelectItem value="CLOSED">Closed</SelectItem>
                           <SelectItem value="ARCHIVED">Archived</SelectItem>
                         </SelectContent>
                       </Select>

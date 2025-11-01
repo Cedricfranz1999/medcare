@@ -68,9 +68,9 @@ const SignInPage = () => {
         transition={{ duration: 0.8 }}
       >
         <motion.img
-          src="logo.png"
+          src="/logo.png"
           alt="MEDCARE Admin Logo"
-          className="mb-6 rounded-2xl border-4 border-white object-contain shadow-lg"
+          className="mb-6 rounded-xl border-4 border-white object-contain shadow-lg"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{

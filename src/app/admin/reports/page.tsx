@@ -104,7 +104,16 @@ interface MedicineRequest {
   }[];
 }
 
-const PrintHeader = ({ dateRange }: { dateRange: { from: Date | undefined; to: Date | undefined } }) => {
+interface Category {
+  id: number;
+  name: string;
+}
+
+const PrintHeader = ({
+  dateRange,
+}: {
+  dateRange: { from: Date | undefined; to: Date | undefined };
+}) => {
   return (
     <div className="mb-6 flex items-center justify-between">
       <div>
@@ -118,14 +127,13 @@ const PrintHeader = ({ dateRange }: { dateRange: { from: Date | undefined; to: D
             : "All Dates"}
         </p>
       </div>
-    <div>
-  <img 
-    src="/logo1.png" 
-    alt="MedCare Logo" 
-    className="h-14 w-14 rounded-full object-cover" 
-  />
-</div>
-
+      <div>
+        <img
+          src="/logo1.png"
+          alt="MedCare Logo"
+          className="h-14 w-14 rounded-full object-cover"
+        />
+      </div>
     </div>
   );
 };
@@ -136,15 +144,22 @@ const MedicineReportsPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
-  const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+  const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(
+    null,
+  );
+  const [dateRange, setDateRange] = useState<{
+    from: Date | undefined;
+    to: Date | undefined;
+  }>({
     from: undefined,
     to: undefined,
   });
   const [stockFilter, setStockFilter] = useState<"all" | "low" | "out">("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [expiryFilter, setExpiryFilter] = useState<"all" | "expired" | "expiring">("all");
+  const [expiryFilter, setExpiryFilter] = useState<
+    "all" | "expired" | "expiring"
+  >("all");
 
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -186,8 +201,12 @@ const MedicineReportsPage = () => {
           backgroundColor: "white",
         },
       });
-    }
+    },
   });
+
+  // Fetch categories from database
+  const { data: categoriesData, isLoading: categoriesLoading } =
+    api.reporstData.getCategories.useQuery();
 
   const {
     data: medicinesData,
@@ -205,10 +224,11 @@ const MedicineReportsPage = () => {
     dateTo: dateRange.to,
   });
 
-  const { data: requestsData, refetch: refetchRequests } = api.reporstData.getRequests.useQuery({
-    dateFrom: dateRange.from,
-    dateTo: dateRange.to,
-  });
+  const { data: requestsData, refetch: refetchRequests } =
+    api.reporstData.getRequests.useQuery({
+      dateFrom: dateRange.from,
+      dateTo: dateRange.to,
+    });
 
   const { data: chartData } = api.reporstData.getChartData.useQuery({
     dateFrom: dateRange.from,
@@ -245,27 +265,28 @@ const MedicineReportsPage = () => {
     },
   });
 
-  const exportMedicinesMutation = api.reporstData.exportMedicinesCSV.useMutation({
-    onSuccess: (data) => {
-      const blob = new Blob([data.csv], { type: "text/csv" });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `medicine-inventory-${format(new Date(), "yyyy-MM-dd")}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast({
-        title: "📊 Export Complete",
-        description: "Medicine inventory CSV downloaded successfully",
-        variant: "default",
-        style: {
-          backgroundColor: "white",
-        },
-      });
-    },
-  });
+  const exportMedicinesMutation =
+    api.reporstData.exportMedicinesCSV.useMutation({
+      onSuccess: (data) => {
+        const blob = new Blob([data.csv], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `medicine-inventory-${format(new Date(), "yyyy-MM-dd")}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast({
+          title: "📊 Export Complete",
+          description: "Medicine inventory CSV downloaded successfully",
+          variant: "default",
+          style: {
+            backgroundColor: "white",
+          },
+        });
+      },
+    });
 
   const exportRequestsMutation = api.reporstData.exportRequestsCSV.useMutation({
     onSuccess: (data) => {
@@ -320,8 +341,10 @@ const MedicineReportsPage = () => {
     });
   };
 
-  const lowStockCount = medicinesData?.data.filter((m) => m.stock <= 10).length || 0;
-  const outOfStockCount = medicinesData?.data.filter((m) => m.stock === 0).length || 0;
+  const lowStockCount =
+    medicinesData?.data.filter((m) => m.stock <= 10).length || 0;
+  const outOfStockCount =
+    medicinesData?.data.filter((m) => m.stock === 0).length || 0;
 
   const chartConfig = {
     stock: {
@@ -392,8 +415,12 @@ const MedicineReportsPage = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Medicines</p>
-                  <p className="text-2xl font-bold text-gray-900">{medicinesData?.total || 0}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Medicines
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {medicinesData?.total || 0}
+                  </p>
                 </div>
                 <Package className="h-8 w-8 text-blue-600" />
               </div>
@@ -404,7 +431,9 @@ const MedicineReportsPage = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Low Stock</p>
-                  <p className="text-2xl font-bold text-orange-600">{lowStockCount}</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {lowStockCount}
+                  </p>
                 </div>
                 <AlertTriangle className="h-8 w-8 text-orange-600" />
               </div>
@@ -414,8 +443,12 @@ const MedicineReportsPage = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Out of Stock</p>
-                  <p className="text-2xl font-bold text-red-600">{outOfStockCount}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Out of Stock
+                  </p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {outOfStockCount}
+                  </p>
                 </div>
                 <AlertTriangle className="h-8 w-8 text-red-600" />
               </div>
@@ -425,8 +458,12 @@ const MedicineReportsPage = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Requests</p>
-                  <p className="text-2xl font-bold text-green-600">{requestsData?.length || 0}</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Requests
+                  </p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {requestsData?.length || 0}
+                  </p>
                 </div>
                 <FileText className="h-8 w-8 text-green-600" />
               </div>
@@ -436,7 +473,7 @@ const MedicineReportsPage = () => {
 
         {chartData && (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+            <Card className="rounded-lg border-none border-gray-300 bg-gray-50 shadow-md drop-shadow-md transition-colors duration-300 hover:bg-white">
               <CardHeader>
                 <CardTitle>Stock Levels by Medicine</CardTitle>
               </CardHeader>
@@ -445,15 +482,35 @@ const MedicineReportsPage = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData.stockChart}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 12 }} axisLine={{ stroke: "#cbd5e1" }} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 12 }} axisLine={{ stroke: "#cbd5e1" }} />
-                      <ChartTooltip content={<ChartTooltipContent />} contentStyle={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }} />
-                      <Bar dataKey="stock" fill={chartConfig.stock.color} radius={[4, 4, 0, 0]} />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fill: "#64748b", fontSize: 12 }}
+                        axisLine={{ stroke: "#cbd5e1" }}
+                      />
+                      <YAxis
+                        tick={{ fill: "#64748b", fontSize: 12 }}
+                        axisLine={{ stroke: "#cbd5e1" }}
+                      />
+                      <ChartTooltip
+                        content={<ChartTooltipContent />}
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                      />
+                      <Bar
+                        dataKey="stock"
+                        fill={chartConfig.stock.color}
+                        radius={[4, 4, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartContainer>
               </CardContent>
             </Card>
+
             <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
               <CardHeader>
                 <CardTitle>Medicine Types Distribution</CardTitle>
@@ -473,10 +530,22 @@ const MedicineReportsPage = () => {
                         labelLine={false}
                       >
                         {chartData.typeChart.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={pieColors[entry.name as keyof typeof pieColors]} />
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              pieColors[entry.name as keyof typeof pieColors]
+                            }
+                          />
                         ))}
                       </Pie>
-                      <ChartTooltip contentStyle={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }} />
+                      <ChartTooltip
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </ChartContainer>
@@ -490,9 +559,19 @@ const MedicineReportsPage = () => {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <div className="relative flex-1">
                 <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 border-gray-300 text-gray-400" />
-                <Input placeholder="Search medicines..." value={search} onChange={(e) => setSearch(e.target.value)} className="rounded-md border-gray-300 pl-10 shadow-sm drop-shadow-sm" />
+                <Input
+                  placeholder="Search medicines..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="rounded-md border-gray-300 pl-10 shadow-sm drop-shadow-sm"
+                />
               </div>
-              <Select value={stockFilter} onValueChange={(value: "all" | "low" | "out") => setStockFilter(value)}>
+              <Select
+                value={stockFilter}
+                onValueChange={(value: "all" | "low" | "out") =>
+                  setStockFilter(value)
+                }
+              >
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Filter by stock" />
                 </SelectTrigger>
@@ -502,7 +581,10 @@ const MedicineReportsPage = () => {
                   <SelectItem value="out">Out of Stock</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value)}>
+              <Select
+                value={typeFilter}
+                onValueChange={(value) => setTypeFilter(value)}
+              >
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Filter by type" />
                 </SelectTrigger>
@@ -512,18 +594,34 @@ const MedicineReportsPage = () => {
                   <SelectItem value="PRESCRIPTION">Prescription</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value)}>
+              <Select
+                value={categoryFilter}
+                onValueChange={(value) => setCategoryFilter(value)}
+              >
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Filter by category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-72 bg-white">
                   <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="Pain Relief">Pain Relief</SelectItem>
-                  <SelectItem value="Antibiotics">Antibiotics</SelectItem>
-                  <SelectItem value="Vitamins">Vitamins</SelectItem>
+                  {categoriesLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading categories...
+                    </SelectItem>
+                  ) : (
+                    categoriesData?.map((category: Category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        {category.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
-              <Select value={expiryFilter} onValueChange={(value: "all" | "expired" | "expiring") => setExpiryFilter(value)}>
+              <Select
+                value={expiryFilter}
+                onValueChange={(value: "all" | "expired" | "expiring") =>
+                  setExpiryFilter(value)
+                }
+              >
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Filter by expiry" />
                 </SelectTrigger>
@@ -535,13 +633,41 @@ const MedicineReportsPage = () => {
               </Select>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal sm:w-[280px]", !dateRange.from && "text-muted-foreground")}>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal sm:w-[280px]",
+                      !dateRange.from && "text-muted-foreground",
+                    )}
+                  >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange.from ? (dateRange.to ? (<>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</>) : format(dateRange.from, "LLL dd, y")) : <span>Pick a date range</span>}
+                    {dateRange.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "LLL dd, y")} -{" "}
+                          {format(dateRange.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "LLL dd, y")
+                      )
+                    ) : (
+                      <span>Pick a date range</span>
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto bg-white p-0" align="start">
-                  <Calendar initialFocus mode="range" defaultMonth={dateRange.from} selected={dateRange} onSelect={(range) => setDateRange(range || ({ from: undefined, to: undefined } as any))} numberOfMonths={2} />
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange.from}
+                    selected={dateRange}
+                    onSelect={(range) =>
+                      setDateRange(
+                        range || ({ from: undefined, to: undefined } as any),
+                      )
+                    }
+                    numberOfMonths={2}
+                  />
                 </PopoverContent>
               </Popover>
             </div>
@@ -550,16 +676,20 @@ const MedicineReportsPage = () => {
 
         {/* Print content - this is what will be printed */}
         <div style={{ display: "none" }}>
-          <div ref={printRef} className="print-container p-6 bg-white">
+          <div ref={printRef} className="print-container bg-white p-6">
             <PrintHeader dateRange={dateRange} />
-            <Card className="rounded-lg border border-gray-300 shadow-md mb-6">
+            <Card className="mb-6 rounded-lg border border-gray-300 shadow-md">
               <CardHeader>
                 <CardTitle>Medicine Inventory</CardTitle>
               </CardHeader>
               <CardContent>
                 {medicinesLoading ? (
                   <div className="space-y-3">
-                    {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+                    {Array(5)
+                      .fill(0)
+                      .map((_, i) => (
+                        <Skeleton key={i} className="h-12 w-full" />
+                      ))}
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -577,27 +707,63 @@ const MedicineReportsPage = () => {
                       </TableHeader>
                       <TableBody>
                         {medicinesData?.data.map((medicine) => (
-                          <TableRow key={medicine.id} className="border-gray-300">
+                          <TableRow
+                            key={medicine.id}
+                            className="border-gray-300"
+                          >
                             <TableCell>
                               <div>
-                                <div className="font-medium">{medicine.name}</div>
-                                <div className="text-sm text-gray-500">{medicine.dosageForm} {medicine.size && `- ${medicine.size}`}</div>
+                                <div className="font-medium">
+                                  {medicine.name}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {medicine.dosageForm}{" "}
+                                  {medicine.size && `- ${medicine.size}`}
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell>{medicine.brand}</TableCell>
-                            <TableCell><Badge variant="outline">{medicine.type}</Badge></TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{medicine.type}</Badge>
+                            </TableCell>
                             <TableCell>{medicine.category}</TableCell>
                             <TableCell>
-                              <span className={cn("font-medium", medicine.stock === 0 ? "text-red-600" : medicine.stock <= 10 ? "text-orange-600" : "text-green-600")}>
+                              <span
+                                className={cn(
+                                  "font-medium",
+                                  medicine.stock === 0
+                                    ? "text-red-600"
+                                    : medicine.stock <= 10
+                                      ? "text-orange-600"
+                                      : "text-green-600",
+                                )}
+                              >
                                 {medicine.stock}
                               </span>
                             </TableCell>
                             <TableCell>
-                              {medicine.expiryDate ? format(new Date(medicine.expiryDate), "MMM dd, yyyy") : "N/A"}
+                              {medicine.expiryDate
+                                ? format(
+                                    new Date(medicine.expiryDate),
+                                    "MMM dd, yyyy",
+                                  )
+                                : "N/A"}
                             </TableCell>
                             <TableCell>
-                              <Badge variant={medicine.stock === 0 ? "destructive" : medicine.stock <= 10 ? "secondary" : "default"}>
-                                {medicine.stock === 0 ? "Out of Stock" : medicine.stock <= 10 ? "Low Stock" : "In Stock"}
+                              <Badge
+                                variant={
+                                  medicine.stock === 0
+                                    ? "destructive"
+                                    : medicine.stock <= 10
+                                      ? "secondary"
+                                      : "default"
+                                }
+                              >
+                                {medicine.stock === 0
+                                  ? "Out of Stock"
+                                  : medicine.stock <= 10
+                                    ? "Low Stock"
+                                    : "In Stock"}
                               </Badge>
                             </TableCell>
                           </TableRow>
@@ -615,17 +781,37 @@ const MedicineReportsPage = () => {
               <CardContent>
                 <div className="space-y-4">
                   {requestsData?.map((request) => (
-                    <div key={request.id} className="flex items-center justify-between border-b pb-4">
+                    <div
+                      key={request.id}
+                      className="flex items-center justify-between border-b pb-4"
+                    >
                       <div>
                         <div className="font-medium">{request.user.name}</div>
-                        <div className="text-sm text-gray-500">{request.reason}</div>
-                        <div className="text-xs text-gray-400">{format(new Date(request.requestedAt), "MMM dd, yyyy")}</div>
+                        <div className="text-sm text-gray-500">
+                          {request.reason}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {format(
+                            new Date(request.requestedAt),
+                            "MMM dd, yyyy",
+                          )}
+                        </div>
                       </div>
                       <div className="text-right">
-                        <Badge variant={request.status === "GIVEN" ? "default" : request.status === "CANCELLED" ? "destructive" : "secondary"}>
+                        <Badge
+                          variant={
+                            request.status === "GIVEN"
+                              ? "default"
+                              : request.status === "CANCELLED"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                        >
                           {request.status}
                         </Badge>
-                        <div className="mt-1 text-sm text-gray-500">{request.medicines.length} item(s)</div>
+                        <div className="mt-1 text-sm text-gray-500">
+                          {request.medicines.length} item(s)
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -643,7 +829,11 @@ const MedicineReportsPage = () => {
           <CardContent>
             {medicinesLoading ? (
               <div className="space-y-3">
-                {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+                {Array(5)
+                  .fill(0)
+                  .map((_, i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -665,23 +855,54 @@ const MedicineReportsPage = () => {
                         <TableCell>
                           <div>
                             <div className="font-medium">{medicine.name}</div>
-                            <div className="text-sm text-gray-500">{medicine.dosageForm} {medicine.size && `- ${medicine.size}`}</div>
+                            <div className="text-sm text-gray-500">
+                              {medicine.dosageForm}{" "}
+                              {medicine.size && `- ${medicine.size}`}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>{medicine.brand}</TableCell>
-                        <TableCell><Badge variant="outline">{medicine.type}</Badge></TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{medicine.type}</Badge>
+                        </TableCell>
                         <TableCell>{medicine.category}</TableCell>
                         <TableCell>
-                          <span className={cn("font-medium", medicine.stock === 0 ? "text-red-600" : medicine.stock <= 10 ? "text-orange-600" : "text-green-600")}>
+                          <span
+                            className={cn(
+                              "font-medium",
+                              medicine.stock === 0
+                                ? "text-red-600"
+                                : medicine.stock <= 10
+                                  ? "text-orange-600"
+                                  : "text-green-600",
+                            )}
+                          >
                             {medicine.stock}
                           </span>
                         </TableCell>
                         <TableCell>
-                          {medicine.expiryDate ? format(new Date(medicine.expiryDate), "MMM dd, yyyy") : "N/A"}
+                          {medicine.expiryDate
+                            ? format(
+                                new Date(medicine.expiryDate),
+                                "MMM dd, yyyy",
+                              )
+                            : "N/A"}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={medicine.stock === 0 ? "destructive" : medicine.stock <= 10 ? "secondary" : "default"}>
-                            {medicine.stock === 0 ? "Out of Stock" : medicine.stock <= 10 ? "Low Stock" : "In Stock"}
+                          <Badge
+                            variant={
+                              medicine.stock === 0
+                                ? "destructive"
+                                : medicine.stock <= 10
+                                  ? "secondary"
+                                  : "default"
+                            }
+                          >
+                            {medicine.stock === 0
+                              ? "Out of Stock"
+                              : medicine.stock <= 10
+                                ? "Low Stock"
+                                : "In Stock"}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -699,17 +920,34 @@ const MedicineReportsPage = () => {
           <CardContent>
             <div className="space-y-4">
               {requestsData?.map((request) => (
-                <div key={request.id} className="flex items-center justify-between border-b pb-4">
+                <div
+                  key={request.id}
+                  className="flex items-center justify-between border-b pb-4"
+                >
                   <div>
                     <div className="font-medium">{request.user.name}</div>
-                    <div className="text-sm text-gray-500">{request.reason}</div>
-                    <div className="text-xs text-gray-400">{format(new Date(request.requestedAt), "MMM dd, yyyy")}</div>
+                    <div className="text-sm text-gray-500">
+                      {request.reason}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {format(new Date(request.requestedAt), "MMM dd, yyyy")}
+                    </div>
                   </div>
                   <div className="text-right">
-                    <Badge variant={request.status === "GIVEN" ? "default" : request.status === "CANCELLED" ? "destructive" : "secondary"}>
+                    <Badge
+                      variant={
+                        request.status === "GIVEN"
+                          ? "default"
+                          : request.status === "CANCELLED"
+                            ? "destructive"
+                            : "secondary"
+                      }
+                    >
                       {request.status}
                     </Badge>
-                    <div className="mt-1 text-sm text-gray-500">{request.medicines.length} item(s)</div>
+                    <div className="mt-1 text-sm text-gray-500">
+                      {request.medicines.length} item(s)
+                    </div>
                   </div>
                 </div>
               ))}
@@ -719,7 +957,13 @@ const MedicineReportsPage = () => {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Select value={pageSize.toString()} onValueChange={(value) => { setPageSize(Number(value)); setPage(1); }}>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setPage(1);
+              }}
+            >
               <SelectTrigger className="w-[100px]">
                 <SelectValue placeholder="Page size" />
               </SelectTrigger>
@@ -747,7 +991,9 @@ const MedicineReportsPage = () => {
               variant="outline"
               size="sm"
               onClick={() => setPage((p) => p + 1)}
-              disabled={page >= Math.ceil((medicinesData?.total || 0) / pageSize)}
+              disabled={
+                page >= Math.ceil((medicinesData?.total || 0) / pageSize)
+              }
             >
               Next
             </Button>
@@ -758,21 +1004,48 @@ const MedicineReportsPage = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Request Medicine</DialogTitle>
-              <DialogDescription>Submit a request for {selectedMedicine?.name}</DialogDescription>
+              <DialogDescription>
+                Submit a request for {selectedMedicine?.name}
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleRequestSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="quantity">Quantity</Label>
-                <Input id="quantity" name="quantity" type="number" min="1" max={selectedMedicine?.stock || 1} required />
+                <Input
+                  id="quantity"
+                  name="quantity"
+                  type="number"
+                  min="1"
+                  max={selectedMedicine?.stock || 1}
+                  required
+                />
               </div>
               <div>
                 <Label htmlFor="reason">Reason</Label>
-                <Textarea id="reason" name="reason" placeholder="Please provide a reason for this request..." required />
+                <Textarea
+                  id="reason"
+                  name="reason"
+                  placeholder="Please provide a reason for this request..."
+                  required
+                />
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setRequestDialogOpen(false)}>Cancel</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setRequestDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
                 <Button type="submit" disabled={requestMutation.isPending}>
-                  {requestMutation.isPending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</>) : "Submit Request"}
+                  {requestMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Request"
+                  )}
                 </Button>
               </DialogFooter>
             </form>

@@ -2,6 +2,18 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { z } from "zod";
 
 export const medicineReportsRouter = createTRPCRouter({
+  // Add this new procedure to get categories
+  getCategories: publicProcedure.query(async ({ ctx }) => {
+    const categories = await ctx.db.medicineCategory.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: { name: "asc" },
+    });
+    return categories;
+  }),
+
   getMedicines: publicProcedure
     .input(
       z.object({
@@ -33,7 +45,9 @@ export const medicineReportsRouter = createTRPCRouter({
         whereConditions.type = input.type;
       }
       if (input.category && input.category !== "all") {
-        whereConditions.categories = { some: { category: { name: input.category } } };
+        whereConditions.categories = {
+          some: { category: { name: input.category } },
+        };
       }
       if (input.expiryFilter === "expired") {
         whereConditions.expiryDate = { lt: new Date() };
@@ -133,7 +147,9 @@ export const medicineReportsRouter = createTRPCRouter({
         whereConditions.type = input.type;
       }
       if (input.category && input.category !== "all") {
-        whereConditions.categories = { some: { category: { name: input.category } } };
+        whereConditions.categories = {
+          some: { category: { name: input.category } },
+        };
       }
       if (input.expiryFilter === "expired") {
         whereConditions.expiryDate = { lt: new Date() };
@@ -162,7 +178,10 @@ export const medicineReportsRouter = createTRPCRouter({
         take: 10,
       });
       const stockChart = medicines.map((medicine) => ({
-        name: medicine.name.length > 15 ? medicine.name.substring(0, 15) + "..." : medicine.name,
+        name:
+          medicine.name.length > 15
+            ? medicine.name.substring(0, 15) + "..."
+            : medicine.name,
         stock: medicine.stock,
       }));
       const typeData = await ctx.db.medicine.groupBy({
@@ -247,7 +266,9 @@ export const medicineReportsRouter = createTRPCRouter({
         whereConditions.type = input.type;
       }
       if (input.category && input.category !== "all") {
-        whereConditions.categories = { some: { category: { name: input.category } } };
+        whereConditions.categories = {
+          some: { category: { name: input.category } },
+        };
       }
       if (input.expiryFilter === "expired") {
         whereConditions.expiryDate = { lt: new Date() };
@@ -277,7 +298,18 @@ export const medicineReportsRouter = createTRPCRouter({
         orderBy: { name: "asc" },
       });
       const headers = [
-        "ID", "Name", "Brand", "Type", "Dosage Form", "Size", "Stock", "Recommended", "Created At", "Updated At", "Expiry Date", "Category"
+        "ID",
+        "Name",
+        "Brand",
+        "Type",
+        "Dosage Form",
+        "Size",
+        "Stock",
+        "Recommended",
+        "Created At",
+        "Updated At",
+        "Expiry Date",
+        "Category",
       ];
       const csvRows = [
         headers.join(","),
@@ -337,13 +369,27 @@ export const medicineReportsRouter = createTRPCRouter({
         orderBy: { requestedAt: "desc" },
       });
       const headers = [
-        "Request ID", "Requested By", "Username", "Reason", "Status", "Requested At", "Approved At", "Given At", "Medicine Count", "Medicine Names", "Quantities"
+        "Request ID",
+        "Requested By",
+        "Username",
+        "Reason",
+        "Status",
+        "Requested At",
+        "Approved At",
+        "Given At",
+        "Medicine Count",
+        "Medicine Names",
+        "Quantities",
       ];
       const csvRows = [
         headers.join(","),
         ...requests.map((request) => {
-          const medicineNames = request.medicines.map((item) => item.medicine.name).join("; ");
-          const quantities = request.medicines.map((item) => item.quantity).join("; ");
+          const medicineNames = request.medicines
+            .map((item) => item.medicine.name)
+            .join("; ");
+          const quantities = request.medicines
+            .map((item) => item.quantity)
+            .join("; ");
           return [
             request.id,
             `"${request.user.name}"`,

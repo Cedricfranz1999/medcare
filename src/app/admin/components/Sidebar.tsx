@@ -16,8 +16,11 @@ import { api } from "~/trpc/react";
 
 const Sidebar = () => {
   const pathname = usePathname();
-  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
-  const { data: newUser, refetch: refetchCount } = api.user.newUsersCount.useQuery();
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(
+    {},
+  );
+  const { data: newUser, refetch: refetchCount } =
+    api.user.newUsersCount.useQuery();
 
   const isActive = (path: string) => pathname.startsWith(path);
 
@@ -105,7 +108,7 @@ const Sidebar = () => {
                         : "text-white/80 hover:bg-[#0ca4d4] hover:text-white"
                     }`}
                   >
-                    <span className="ml-4">List</span>
+                    <span className="ml-4">Medicine Stock</span>
                   </Link>
                   <Link
                     href="/admin/medicine/category"
@@ -132,30 +135,30 @@ const Sidebar = () => {
             </div>
 
             {/* Users */}
-          <div>
-  <div className="flex items-center justify-between">
-    <Link
-      href="/admin/users"
-      className={`flex flex-1 items-center gap-3 rounded-lg px-3 py-2 transition-all relative ${
-        isActive("/admin/users")
-          ? "bg-white text-[#156cbc]"
-          : "text-white hover:bg-[#0ca4d4] hover:text-white"
-      }`}
-    >
-      <div className="relative">
-        <Users className="h-5 w-5" />
-        {Number(newUser?.count) > 0 && (
-          <span className="absolute -top-2 -right-2 text-[10px] font-bold text-red-500">
-            {newUser?.count}
-          </span>
-        )}
-      </div>
-      <span>Users</span>
-    </Link>
-  </div>
-</div>
+            <div>
+              <div className="flex items-center justify-between">
+                <Link
+                  href="/admin/users"
+                  className={`relative flex flex-1 items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+                    isActive("/admin/users")
+                      ? "bg-white text-[#156cbc]"
+                      : "text-white hover:bg-[#0ca4d4] hover:text-white"
+                  }`}
+                >
+                  <div className="relative">
+                    <Users className="h-5 w-5" />
+                    {Number(newUser?.count) > 0 && (
+                      <span className="absolute -top-2 -right-2 text-[10px] font-bold text-red-500">
+                        {newUser?.count}
+                      </span>
+                    )}
+                  </div>
+                  <span>Users</span>
+                </Link>
+              </div>
+            </div>
 
-   <div>
+            <div>
               <div className="flex items-center justify-between">
                 <Link
                   href="/admin/userConcern"
