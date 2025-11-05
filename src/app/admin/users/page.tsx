@@ -340,9 +340,6 @@ const UsersPage = () => {
                               <div className="text-sm text-gray-600">
                                 {user.contactNumber || "N/A"}
                               </div>
-                              <div className="text-sm text-gray-500">
-                                {user.address || "No address"}
-                              </div>
                             </TableCell>
 
                             <TableCell>

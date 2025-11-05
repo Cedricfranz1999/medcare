@@ -183,15 +183,16 @@ const MedicineReportsPage = () => {
       }
     `,
     onAfterPrint: () => {
-      toast({
-        title: "✅ Print Complete",
-        description: "Report printed successfully",
-        variant: "default",
-        style: {
-          backgroundColor: "white",
-        },
-      });
+      // toast({
+      //   title: "✅ ",
+      //   description: "",
+      //   variant: "default",
+      //   style: {
+      //     backgroundColor: "white",
+      //   },
+      // });
     },
+
     onPrintError: () => {
       toast({
         title: "❌ Print Error",
