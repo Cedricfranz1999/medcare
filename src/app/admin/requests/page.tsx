@@ -27,6 +27,7 @@ import {
   XCircle,
   Clock,
   Filter,
+  Edit,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -44,6 +45,14 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import Image from "next/image";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
 
 const statusConfig = {
   REQUESTED: {
@@ -84,6 +93,7 @@ interface MedicineRequest {
       name: string;
       brand: string;
       image?: string | null;
+      stock: number;
     };
     quantity: number;
   }[];
@@ -99,10 +109,13 @@ export default function MedicineRequestsPage() {
   const [page, setPage] = useState(1);
   const [cancelReason, setCancelReason] = useState("");
   const [openCancelDialog, setOpenCancelDialog] = useState(false);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<MedicineRequest | null>(null);
+  const [editedQuantities, setEditedQuantities] = useState<{[key: number]: number}>({});
   const pageSize = 10;
 
-  const { data, isLoading, refetch } = api.medicineReqeust.getAll.useQuery({
+const { data, isLoading, refetch } = api.medicineReqeust.getAll.useQuery(
+  {
     skip: (page - 1) * pageSize,
     take: pageSize,
     search,
@@ -110,7 +123,13 @@ export default function MedicineRequestsPage() {
       statusFilter === "all"
         ? undefined
         : (statusFilter as "REQUESTED" | "GIVEN" | "CANCELLED" | "APPROVED"),
-  });
+  },
+  {
+    refetchInterval: 5000, 
+    refetchOnWindowFocus: false, 
+  }
+);
+
 
   const updateStatus = api.medicineReqeust.updateStatus.useMutation({
     onSuccess: () => {
@@ -131,6 +150,25 @@ export default function MedicineRequestsPage() {
     },
   });
 
+  const updateQuantities = api.medicineReqeust.updateQuantities.useMutation({
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Medicine quantities updated successfully",
+      });
+      refetch();
+      setOpenEditDialog(false);
+      setEditedQuantities({});
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleStatusChange = (
     request: MedicineRequest,
     status: "GIVEN" | "CANCELLED" | "APPROVED",
@@ -140,6 +178,32 @@ export default function MedicineRequestsPage() {
       setOpenCancelDialog(true);
     } else {
       updateStatus.mutate({ id: request.id, status });
+    }
+  };
+
+  const handleEditQuantities = (request: MedicineRequest) => {
+    setSelectedRequest(request);
+    const initialQuantities: {[key: number]: number} = {};
+    request.medicines.forEach(item => {
+      initialQuantities[item.medicine.id] = item.quantity;
+    });
+    setEditedQuantities(initialQuantities);
+    setOpenEditDialog(true);
+  };
+
+  const handleQuantityChange = (medicineId: number, newQuantity: number) => {
+    setEditedQuantities(prev => ({
+      ...prev,
+      [medicineId]: newQuantity
+    }));
+  };
+
+  const saveQuantities = () => {
+    if (selectedRequest) {
+      updateQuantities.mutate({
+        requestId: selectedRequest.id,
+        quantities: editedQuantities
+      });
     }
   };
 
@@ -226,6 +290,9 @@ export default function MedicineRequestsPage() {
                     <div className="text-muted-foreground text-xs">
                       {item.medicine.brand} • Qty: {item.quantity}
                     </div>
+                    <div className="text-muted-foreground text-xs">
+                      Stock: {item.medicine.stock}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -257,15 +324,16 @@ export default function MedicineRequestsPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 bg-white">
-                {request.status !== "GIVEN" && (
+                {request.status === "REQUESTED" && (
                   <DropdownMenuItem
-                    onClick={() => handleStatusChange(request, "GIVEN")}
-                    className="text-emerald-600 focus:text-emerald-600"
+                    onClick={() => handleEditQuantities(request)}
+                    className="text-blue-600 focus:text-blue-600"
                   >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Mark as Given
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Quantities
                   </DropdownMenuItem>
                 )}
+         
                 {request.status !== "APPROVED" && (
                   <DropdownMenuItem
                     onClick={() => handleStatusChange(request, "APPROVED")}
@@ -562,6 +630,9 @@ export default function MedicineRequestsPage() {
                                         {item.medicine.brand} • Qty:{" "}
                                         {item.quantity}
                                       </div>
+                                      <div className="text-muted-foreground truncate text-xs">
+                                        Stock: {item.medicine.stock}
+                                      </div>
                                     </div>
                                   </div>
                                 ))}
@@ -616,7 +687,16 @@ export default function MedicineRequestsPage() {
                                   align="end"
                                   className="w-48 bg-white"
                                 >
-                                  {request.status !== "GIVEN" && (
+                                  {request.status === "REQUESTED" && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleEditQuantities(request)}
+                                      className="text-blue-600 focus:text-blue-600"
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit Quantities
+                                    </DropdownMenuItem>
+                                  )}
+                                  {/* {request.status !== "GIVEN" && (
                                     <DropdownMenuItem
                                       onClick={() => handleStatusChange(request, "GIVEN")}
                                       className="text-emerald-600 focus:text-emerald-600"
@@ -624,7 +704,7 @@ export default function MedicineRequestsPage() {
                                       <CheckCircle className="mr-2 h-4 w-4" />
                                       Mark as Given
                                     </DropdownMenuItem>
-                                  )}
+                                  )} */}
                                   {request.status !== "APPROVED" && (
                                     <DropdownMenuItem
                                       onClick={() => handleStatusChange(request, "APPROVED")}
@@ -722,6 +802,82 @@ export default function MedicineRequestsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Edit Quantities Dialog */}
+        <Dialog open={openEditDialog} onOpenChange={setOpenEditDialog}>
+          <DialogContent className="mx-4 max-w-md bg-white sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit className="h-5 w-5 text-blue-600" />
+                Edit Medicine Quantities
+              </DialogTitle>
+              <DialogDescription className="text-sm">
+                Adjust the quantities for each medicine in this request. Stock levels are shown for reference.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-96 space-y-4 overflow-y-auto py-4">
+              {selectedRequest?.medicines.map((item) => (
+                <div
+                  key={item.medicine.id}
+                  className="flex items-center justify-between rounded-lg border p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    {item.medicine.image ? (
+                      <Image
+                        unoptimized
+                        width={40}
+                        height={40}
+                        src={item.medicine.image || "/placeholder.svg"}
+                        alt={item.medicine.name}
+                        className="h-10 w-10 rounded-md object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-gradient-to-br from-green-400 to-blue-500">
+                        <Package className="h-5 w-5 text-white" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="font-medium">{item.medicine.name}</div>
+                      <div className="text-muted-foreground text-sm">
+                        {item.medicine.brand} • Stock: {item.medicine.stock}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min="1"
+                      max={item.medicine.stock}
+                      value={editedQuantities[item.medicine.id] || item.quantity}
+                      onChange={(e) => 
+                        handleQuantityChange(item.medicine.id, parseInt(e.target.value) || 1)
+                      }
+                      className="w-20 text-center"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <DialogFooter className="flex-col gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                onClick={() => setOpenEditDialog(false)}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={saveQuantities}
+                disabled={updateQuantities.isPending}
+                className="w-full bg-blue-600 text-white hover:bg-blue-700 sm:w-auto"
+              >
+                {updateQuantities.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Cancel Request Dialog */}
         <AlertDialog open={openCancelDialog} onOpenChange={setOpenCancelDialog}>
           <AlertDialogContent className="mx-4 max-w-md bg-white">
             <AlertDialogHeader>
