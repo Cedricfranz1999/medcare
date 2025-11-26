@@ -58,6 +58,7 @@ model Medicine {
   updatedAt    DateTime                     @updatedAt
   recommended  Boolean                      @default(false)
   expiryDate   DateTime?
+  notificationopen Boolean?                     @default(true)
   carts        MedicineCart[]
   categories   MedicineCategoryOnMedicine[]
   requestItems MedicineRequestItem[]
@@ -153,6 +154,7 @@ enum RequestStatus {
   REQUESTED
   GIVEN
   CANCELLED
+  APPROVED
 }
 
 enum DosageForm {
@@ -175,4 +177,5 @@ enum ConcernStatus {
   IN_REVIEW
   RESOLVED
   CLOSED
+  ARCHIVED
 }

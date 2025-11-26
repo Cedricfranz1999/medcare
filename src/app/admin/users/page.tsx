@@ -258,10 +258,10 @@ const UsersPage = () => {
                           }}
                           className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm shadow-sm transition-all duration-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 focus:outline-none"
                         >
-                          <option value="ALL">All Statuses</option>
+                          <option value="ALL">All Status</option>
                           <option value="PENDING">Pending</option>
                           <option value="APPROVED">Approved</option>
-                          <option value="DEACTIVATED">Deactivated</option>
+                          <option value="DEACTIVE">Deactivated</option>
                         </select>
                       </div>
                     </div>
@@ -339,9 +339,6 @@ const UsersPage = () => {
                             <TableCell>
                               <div className="text-sm text-gray-600">
                                 {user.contactNumber || "N/A"}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {user.address || "No address"}
                               </div>
                             </TableCell>
 

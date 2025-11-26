@@ -8,7 +8,7 @@ const medicineRequestSchema = z.object({
   reason: z.string().min(1, "Reason is required"),
   medicines: z.array(z.object({
     medicineId: z.number().min(1, "Medicine ID is required"),
-    quantity: z.number().min(1, "Quantity must be at least 1"),
+    quantity: z.number().optional(),
   })).min(1, "At least one medicine is required").max(20, "Maximum 20 medicines allowed per request"),
 });
 
@@ -86,31 +86,31 @@ export async function POST(request: NextRequest) {
     }
     
     // Check stock availability for all medicines
-    const stockErrors = [];
-    for (const request of requests) {
-      for (const requestItem of request.medicines) {
-        const medicine = medicines.find(m => m.id === requestItem.medicineId);
-        if (medicine && medicine.stock < requestItem.quantity) {
-          stockErrors.push({
-            userId: request.userId,
-            medicineId: requestItem.medicineId,
-            medicineName: medicine.name,
-            requestedQuantity: requestItem.quantity,
-            availableStock: medicine.stock,
-          });
-        }
-      }
-    }
+    // const stockErrors = [];
+    // for (const request of requests) {
+    //   for (const requestItem of request.medicines) {
+    //     const medicine = medicines.find(m => m.id === requestItem.medicineId);
+    //     if (medicine && medicine.stock < requestItem.quantity) {
+    //       stockErrors.push({
+    //         userId: request.userId,
+    //         medicineId: requestItem.medicineId,
+    //         medicineName: medicine.name,
+    //         requestedQuantity: requestItem.quantity,
+    //         availableStock: medicine.stock,
+    //       });
+    //     }
+    //   }
+    // }
     
-    if (stockErrors.length > 0) {
-      return NextResponse.json(
-        { 
-          error: "Insufficient stock for some medicines",
-          stockErrors 
-        },
-        { status: 400 }
-      );
-    }
+    // if (stockErrors.length > 0) {
+    //   return NextResponse.json(
+    //     { 
+    //       error: "Insufficient stock for some medicines",
+    //       stockErrors 
+    //     },
+    //     { status: 400 }
+    //   );
+    // }
     
     // Create all medicine requests with transaction
     const results = await prisma.$transaction(async (tx) => {
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
               data: {
                 requestId: medicineRequest.id,
                 medicineId: item.medicineId,
-                quantity: item.quantity,
+                quantity: item.quantity ?? 0,
               },
               include: {
                 medicine: {

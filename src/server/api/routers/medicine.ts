@@ -1,4 +1,3 @@
-// ~/server/api/routers/medicine.ts
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { uploadImage } from "~/lib/upload/uploadImage";
@@ -16,14 +15,12 @@ export const medicineRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const where: Prisma.MedicineWhereInput = {};
-
       if (input.search) {
         where.OR = [
           { name: { contains: input.search, mode: "insensitive" } },
           { brand: { contains: input.search, mode: "insensitive" } },
         ];
       }
-
       if (input.categoryId) {
         where.categories = {
           some: {
@@ -31,7 +28,6 @@ export const medicineRouter = createTRPCRouter({
           },
         };
       }
-
       const total = await ctx.db.medicine.count({ where });
       const data = await ctx.db.medicine.findMany({
         where,
@@ -46,9 +42,9 @@ export const medicineRouter = createTRPCRouter({
           },
         },
       });
-
       return { data, total };
     }),
+
   getById: publicProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
@@ -82,18 +78,12 @@ export const medicineRouter = createTRPCRouter({
           "DROPS",
         ]),
         size: z.string().optional(),
-
-        expiryDate: z
-          .string()
-          .optional()
-          .transform((val) => (val ? new Date(val) : undefined)),
-
+        expiryDate: z.date().optional().nullable(),
         stock: z.number().min(0, "Stock cannot be negative"),
         categoryIds: z.array(z.number()).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      console.log("ZZZ", input);
       const data = {
         name: input.name,
         brand: input.brand,
@@ -101,13 +91,10 @@ export const medicineRouter = createTRPCRouter({
         type: input.type,
         dosageForm: input.dosageForm,
         size: input.size,
-
         expiryDate: input.expiryDate,
-
         stock: input.stock,
         image: input.image,
       };
-
       if (input.id) {
         // Update existing medicine
         const medicine = await ctx.db.medicine.update({
@@ -116,7 +103,6 @@ export const medicineRouter = createTRPCRouter({
             ...data,
             categories: input.categoryIds
               ? {
-                  // Delete existing connections and create new ones
                   deleteMany: {},
                   create: input.categoryIds.map((categoryId) => ({
                     categoryId,
@@ -132,7 +118,6 @@ export const medicineRouter = createTRPCRouter({
             },
           },
         });
-
         return medicine;
       } else {
         // Create new medicine
@@ -155,7 +140,6 @@ export const medicineRouter = createTRPCRouter({
             },
           },
         });
-
         return medicine;
       }
     }),
@@ -179,5 +163,184 @@ export const medicineRouter = createTRPCRouter({
     return ctx.db.medicineCategory.findMany({
       orderBy: { name: "asc" },
     });
+  }),
+
+  getLowStock: publicProcedure.query(async ({ ctx }) => {
+    const medicines = await ctx.db.medicine.findMany({
+      where: {
+        stock: {
+          lte: 10,
+        },
+      },
+      orderBy: { stock: "asc" },
+      select: {
+        id: true,
+        name: true,
+        stock: true,
+      },
+    });
+    return {
+      count: medicines.length,
+      medicines,
+    };
+  }),
+
+  getNearExpiry: publicProcedure.query(async ({ ctx }) => {
+    const today = new Date();
+    const twoMonthsFromNow = new Date();
+    twoMonthsFromNow.setMonth(today.getMonth() + 2);
+
+    const medicines = await ctx.db.medicine.findMany({
+      where: {
+        expiryDate: {
+          lte: twoMonthsFromNow,
+          gte: today,
+        },
+      },
+      orderBy: { expiryDate: "asc" },
+      select: {
+        id: true,
+        name: true,
+        expiryDate: true,
+        stock: true,
+      },
+    });
+    return {
+      count: medicines.length,
+      medicines,
+    };
+  }),
+
+  getExpired: publicProcedure.query(async ({ ctx }) => {
+    const today = new Date();
+
+    const medicines = await ctx.db.medicine.findMany({
+      where: {
+        expiryDate: {
+          lt: today,
+        },
+      },
+      orderBy: { expiryDate: "asc" },
+      select: {
+        id: true,
+        name: true,
+        expiryDate: true,
+        stock: true,
+      },
+    });
+    return {
+      count: medicines.length,
+      medicines,
+    };
+  }),
+
+  updateAllNotificationOpen: publicProcedure
+    .mutation(async ({ ctx }) => {
+      await ctx.db.medicine.updateMany({
+        where: {},
+        data: { notificationopen: true },
+      });
+      return { success: true };
+    }),
+
+  updateLowStockNotificationOpen: publicProcedure
+    .input(z.object({ to: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.medicine.updateMany({
+        where: { stock: { lte: 10 } },
+        data: { notificationopen: input.to },
+      });
+      return { success: true };
+    }),
+
+  updateNearExpiryNotificationOpen: publicProcedure
+    .input(z.object({ to: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const today = new Date();
+      const twoMonthsFromNow = new Date();
+      twoMonthsFromNow.setMonth(today.getMonth() + 2);
+
+      await ctx.db.medicine.updateMany({
+        where: {
+          expiryDate: {
+            lte: twoMonthsFromNow,
+            gte: today,
+          }
+        },
+        data: { notificationopen: input.to },
+      });
+      return { success: true };
+    }),
+
+  getLowStockCount: publicProcedure.query(async ({ ctx }) => {
+    const medicines = await ctx.db.medicine.findMany({
+      where: {
+        stock: {
+          lte: 10,
+        },
+        notificationopen: true
+      },
+      orderBy: { stock: "asc" },
+      select: {
+        id: true,
+        name: true,
+        stock: true,
+      },
+    });
+    return {
+      count: medicines.length,
+      medicines,
+    };
+  }),
+
+  getNearExpiryCount: publicProcedure.query(async ({ ctx }) => {
+    const today = new Date();
+    const twoMonthsFromNow = new Date();
+    twoMonthsFromNow.setMonth(today.getMonth() + 2);
+
+    const medicines = await ctx.db.medicine.findMany({
+      where: {
+        expiryDate: {
+          lte: twoMonthsFromNow,
+          gte: today,
+        },
+        notificationopen: true
+      },
+      orderBy: { expiryDate: "asc" },
+      select: {
+        id: true,
+        name: true,
+        expiryDate: true,
+        stock: true,
+      },
+    });
+    return {
+      count: medicines.length,
+      medicines,
+    };
+  }),
+
+  getExpiredCount: publicProcedure.query(async ({ ctx }) => {
+    const today = new Date();
+
+    const medicines = await ctx.db.medicine.findMany({
+      where: {
+        expiryDate: {
+          lt: today,
+        },
+        notificationopen: true
+      },
+      orderBy: { expiryDate: "asc" },
+      select: {
+        id: true,
+        name: true,
+        expiryDate: true,
+        stock: true,
+      },
+    });
+    return {
+      count: medicines.length,
+      medicines,
+    };
   }),
 });

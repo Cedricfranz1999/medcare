@@ -59,7 +59,7 @@ const SignInPage = () => {
         animate={{ opacity: 1 }}
         transition={{ duration: 1 }}
       >
-        MEDCARE: Barangay Health Access Portal
+        CAREMED: Barangay Health Access Portal
       </motion.h1>
       <motion.div
         className="w-full max-w-lg rounded-lg bg-white p-10 text-center shadow-xl"
@@ -68,9 +68,9 @@ const SignInPage = () => {
         transition={{ duration: 0.8 }}
       >
         <motion.img
-          src="logo.png"
+          src="/logo1.png"
           alt="MEDCARE Admin Logo"
-          className="mb-6 rounded-2xl border-4 border-white object-contain shadow-lg"
+          className="mb-6 rounded-xl border-4 border-white object-contain shadow-lg"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{

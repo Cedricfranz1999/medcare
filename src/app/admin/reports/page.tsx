@@ -1,7 +1,6 @@
-// MedicineReportsPage.tsx (component)
 "use client";
 import type React from "react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useToast } from "~/components/ui/use-toast";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
@@ -42,6 +41,7 @@ import {
 } from "~/components/ui/popover";
 import { cn } from "~/lib/utils";
 import { format } from "date-fns";
+import { useReactToPrint } from "react-to-print";
 import {
   BarChart,
   Bar,
@@ -67,6 +67,7 @@ import {
   AlertTriangle,
   FileText,
   Loader2,
+  Printer,
 } from "lucide-react";
 
 interface Medicine {
@@ -81,6 +82,8 @@ interface Medicine {
   recommended: boolean;
   createdAt: Date;
   updatedAt: Date;
+  category: string;
+  expiryDate: Date | null;
 }
 
 interface MedicineRequest {
@@ -101,10 +104,45 @@ interface MedicineRequest {
   }[];
 }
 
+interface Category {
+  id: number;
+  name: string;
+}
+
+const PrintHeader = ({
+  dateRange,
+}: {
+  dateRange: { from: Date | undefined; to: Date | undefined };
+}) => {
+  return (
+    <div className="mb-6 flex items-center justify-between">
+      <div>
+        <img src="/logo2.png" alt="MedCare Logo" className="h-12" />
+      </div>
+      <div className="text-center">
+        <h2 className="text-xl font-bold">Medicine Inventory Report</h2>
+        <p className="text-sm text-gray-600">
+          {dateRange.from && dateRange.to
+            ? `${format(dateRange.from, "MMMM dd, yyyy")} - ${format(dateRange.to, "MMMM dd, yyyy")}`
+            : "All Dates"}
+        </p>
+      </div>
+      <div>
+        <img
+          src="/logo1.png"
+          alt="MedCare Logo"
+          className="h-14 w-14 rounded-full object-cover"
+        />
+      </div>
+    </div>
+  );
+};
+
 const MedicineReportsPage = () => {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(100);
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(
     null,
@@ -117,10 +155,60 @@ const MedicineReportsPage = () => {
     to: undefined,
   });
   const [stockFilter, setStockFilter] = useState<"all" | "low" | "out">("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [expiryFilter, setExpiryFilter] = useState<
+    "all" | "expired" | "expiring"
+  >("all");
 
-  const pageSize = 10;
+  const printRef = useRef<HTMLDivElement>(null);
 
-  // Fetch medicines with filters
+  // Fixed print function - using contentRef instead of content
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: "Medicine Inventory Report",
+    pageStyle: `
+      @media print {
+        body { 
+          -webkit-print-color-adjust: exact; 
+          background-color: white !important;
+        }
+        .print-container * {
+          background-color: white !important;
+          color: black !important;
+        }
+        @page {
+          margin: 0.5in;
+        }
+      }
+    `,
+    onAfterPrint: () => {
+      // toast({
+      //   title: "✅ ",
+      //   description: "",
+      //   variant: "default",
+      //   style: {
+      //     backgroundColor: "white",
+      //   },
+      // });
+    },
+
+    onPrintError: () => {
+      toast({
+        title: "❌ Print Error",
+        description: "Failed to print report",
+        variant: "destructive",
+        style: {
+          backgroundColor: "white",
+        },
+      });
+    },
+  });
+
+  // Fetch categories from database
+  const { data: categoriesData, isLoading: categoriesLoading } =
+    api.reporstData.getCategories.useQuery();
+
   const {
     data: medicinesData,
     refetch: refetchMedicines,
@@ -130,30 +218,37 @@ const MedicineReportsPage = () => {
     take: pageSize,
     search,
     stockFilter,
+    type: typeFilter,
+    category: categoryFilter,
+    expiryFilter,
     dateFrom: dateRange.from,
     dateTo: dateRange.to,
   });
 
-  // Fetch medicine requests
   const { data: requestsData, refetch: refetchRequests } =
     api.reporstData.getRequests.useQuery({
       dateFrom: dateRange.from,
       dateTo: dateRange.to,
     });
 
-  // Fetch chart data
   const { data: chartData } = api.reporstData.getChartData.useQuery({
     dateFrom: dateRange.from,
     dateTo: dateRange.to,
+    stockFilter,
+    type: typeFilter,
+    category: categoryFilter,
+    expiryFilter,
   });
 
-  // Request medicine mutation
   const requestMutation = api.reporstData.requestMedicine.useMutation({
     onSuccess: () => {
       toast({
         title: "✅ Success!",
         description: "Medicine request submitted successfully",
         variant: "default",
+        style: {
+          backgroundColor: "white",
+        },
       });
       setRequestDialogOpen(false);
       setSelectedMedicine(null);
@@ -164,11 +259,13 @@ const MedicineReportsPage = () => {
         title: "❌ Error",
         description: error.message,
         variant: "destructive",
+        style: {
+          backgroundColor: "white",
+        },
       });
     },
   });
 
-  // Export medicines CSV mutation
   const exportMedicinesMutation =
     api.reporstData.exportMedicinesCSV.useMutation({
       onSuccess: (data) => {
@@ -185,11 +282,13 @@ const MedicineReportsPage = () => {
           title: "📊 Export Complete",
           description: "Medicine inventory CSV downloaded successfully",
           variant: "default",
+          style: {
+            backgroundColor: "white",
+          },
         });
       },
     });
 
-  // Export requests CSV mutation
   const exportRequestsMutation = api.reporstData.exportRequestsCSV.useMutation({
     onSuccess: (data) => {
       const blob = new Blob([data.csv], { type: "text/csv" });
@@ -205,6 +304,9 @@ const MedicineReportsPage = () => {
         title: "📊 Export Complete",
         description: "Medicine requests CSV downloaded successfully",
         variant: "default",
+        style: {
+          backgroundColor: "white",
+        },
       });
     },
   });
@@ -213,6 +315,9 @@ const MedicineReportsPage = () => {
     exportMedicinesMutation.mutate({
       search,
       stockFilter,
+      type: typeFilter,
+      category: categoryFilter,
+      expiryFilter,
       dateFrom: dateRange.from,
       dateTo: dateRange.to,
     });
@@ -228,13 +333,12 @@ const MedicineReportsPage = () => {
   const handleRequestSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedMedicine) return;
-
     const formData = new FormData(e.currentTarget);
     requestMutation.mutate({
       medicineId: selectedMedicine.id,
       quantity: Number.parseInt(formData.get("quantity") as string),
       reason: formData.get("reason") as string,
-      userId: 1, // Replace with actual user ID from auth
+      userId: 1,
     });
   };
 
@@ -243,36 +347,25 @@ const MedicineReportsPage = () => {
   const outOfStockCount =
     medicinesData?.data.filter((m) => m.stock === 0).length || 0;
 
-  // Improved chart configuration with vibrant colors
   const chartConfig = {
     stock: {
       label: "Stock Level",
-      color: "#3b82f6", // Bright blue
+      color: "#3b82f6",
     },
     requests: {
       label: "Requests",
-      color: "#10b981", // Emerald green
+      color: "#10b981",
     },
   };
 
-  // Vibrant color palette for pie chart
-  const pieColors = [
-    "#3b82f6", // Blue
-    "#10b981", // Emerald
-    "#f59e0b", // Amber
-    "#ef4444", // Red
-    "#8b5cf6", // Violet
-    "#06b6d4", // Cyan
-    "#84cc16", // Lime
-    "#f97316", // Orange
-    "#ec4899", // Pink
-    "#6366f1", // Indigo
-  ];
+  const pieColors = {
+    OTC: "#3b82f6",
+    PRESCRIPTION: "#ef4444",
+  };
 
   return (
     <div className="min-h-screen bg-white bg-gradient-to-br">
       <div className="container mx-auto space-y-6 p-6">
-        {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-4xl font-bold text-[#0ca4d4] sm:text-5xl">
@@ -281,6 +374,14 @@ const MedicineReportsPage = () => {
             <p className="text-gray-600">Inventory management and analytics</p>
           </div>
           <div className="flex gap-2">
+            <Button
+              onClick={() => handlePrint()}
+              variant="outline"
+              className="flex items-center gap-2 bg-transparent"
+            >
+              <Printer className="h-4 w-4" />
+              Print Report
+            </Button>
             <Button
               onClick={handleExportMedicinesCSV}
               disabled={exportMedicinesMutation.isPending}
@@ -310,7 +411,6 @@ const MedicineReportsPage = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
             <CardContent className="p-6">
@@ -372,10 +472,9 @@ const MedicineReportsPage = () => {
           </Card>
         </div>
 
-        {/* Charts */}
         {chartData && (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+            <Card className="rounded-lg border-none border-gray-300 bg-gray-50 shadow-md drop-shadow-md transition-colors duration-300 hover:bg-white">
               <CardHeader>
                 <CardTitle>Stock Levels by Medicine</CardTitle>
               </CardHeader>
@@ -418,10 +517,7 @@ const MedicineReportsPage = () => {
                 <CardTitle>Medicine Types Distribution</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer
-                  config={chartConfig}
-                  className="h-[300px] bg-red-200"
-                >
+                <ChartContainer config={chartConfig} className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -429,17 +525,17 @@ const MedicineReportsPage = () => {
                         cx="50%"
                         cy="50%"
                         outerRadius={80}
-                        fill="##453cf3"
-                        className="bg-[#453cf3]"
+                        fill="#8884d8"
                         dataKey="count"
                         label={({ name, value }) => `${name}: ${value}`}
                         labelLine={false}
-                        style={{ fontSize: "12px", fill: "#f97316" }}
                       >
                         {chartData.typeChart.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
-                            fill={pieColors[index % pieColors.length]}
+                            fill={
+                              pieColors[entry.name as keyof typeof pieColors]
+                            }
                           />
                         ))}
                       </Pie>
@@ -459,7 +555,6 @@ const MedicineReportsPage = () => {
           </div>
         )}
 
-        {/* Filters */}
         <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
           <CardContent className="p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -485,6 +580,56 @@ const MedicineReportsPage = () => {
                   <SelectItem value="all">All Stock</SelectItem>
                   <SelectItem value="low">Low Stock (≤10)</SelectItem>
                   <SelectItem value="out">Out of Stock</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={typeFilter}
+                onValueChange={(value) => setTypeFilter(value)}
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="OTC">OTC</SelectItem>
+                  <SelectItem value="PRESCRIPTION">Prescription</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={categoryFilter}
+                onValueChange={(value) => setCategoryFilter(value)}
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72 bg-white">
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categoriesLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading categories...
+                    </SelectItem>
+                  ) : (
+                    categoriesData?.map((category: Category) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        {category.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <Select
+                value={expiryFilter}
+                onValueChange={(value: "all" | "expired" | "expiring") =>
+                  setExpiryFilter(value)
+                }
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Filter by expiry" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="expiring">Expiring Soon</SelectItem>
                 </SelectContent>
               </Select>
               <Popover>
@@ -529,9 +674,202 @@ const MedicineReportsPage = () => {
             </div>
           </CardContent>
         </Card>
+        {/* <div className="flex items-center justify-between p-6">
+          <div className="flex items-center gap-2 bg-white">
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue placeholder="Page size" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                <SelectItem value="1000">display all</SelectItem>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </Button>
+            <span className="text-sm">
+              Page {page} of {Math.ceil((medicinesData?.total || 0) / pageSize)}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={
+                page >= Math.ceil((medicinesData?.total || 0) / pageSize)
+              }
+            >
+              Next
+            </Button>
+          </div>
+        </div> */}
 
-        {/* Medicine Inventory Table */}
-        <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+        {/* Print content - this is what will be printed */}
+        <div style={{ display: "none" }}>
+          <div ref={printRef} className="print-container bg-white p-6">
+            <PrintHeader dateRange={dateRange} />
+            <Card className="mb-6 rounded-lg border border-gray-300 shadow-md">
+              <CardHeader>
+                <CardTitle>Medicine Inventory</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {medicinesLoading ? (
+                  <div className="space-y-3">
+                    {Array(5)
+                      .fill(0)
+                      .map((_, i) => (
+                        <Skeleton key={i} className="h-12 w-full" />
+                      ))}
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-300">
+                          <TableHead>Medicine</TableHead>
+                          <TableHead>Brand</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Stock</TableHead>
+                          <TableHead>Expiry</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {medicinesData?.data.map((medicine) => (
+                          <TableRow
+                            key={medicine.id}
+                            className="border-gray-300"
+                          >
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">
+                                  {medicine.name}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {medicine.dosageForm}{" "}
+                                  {medicine.size && `- ${medicine.size}`}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{medicine.brand}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{medicine.type}</Badge>
+                            </TableCell>
+                            <TableCell>{medicine.category}</TableCell>
+                            <TableCell>
+                              <span
+                                className={cn(
+                                  "font-medium",
+                                  medicine.stock === 0
+                                    ? "text-red-600"
+                                    : medicine.stock <= 10
+                                      ? "text-orange-600"
+                                      : "text-green-600",
+                                )}
+                              >
+                                {medicine.stock}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {medicine.expiryDate
+                                ? format(
+                                    new Date(medicine.expiryDate),
+                                    "MMM dd, yyyy",
+                                  )
+                                : "N/A"}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  medicine.stock === 0
+                                    ? "destructive"
+                                    : medicine.stock <= 10
+                                      ? "secondary"
+                                      : "default"
+                                }
+                              >
+                                {medicine.stock === 0
+                                  ? "Out of Stock"
+                                  : medicine.stock <= 10
+                                    ? "Low Stock"
+                                    : "In Stock"}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="rounded-lg border border-gray-300 shadow-md">
+              <CardHeader>
+                <CardTitle>All Medicine Requests</CardTitle>
+              </CardHeader>
+              <CardContent className="bg-red-500">
+                <div className="space-y-4">
+                  {requestsData?.map((request) => (
+                    <div
+                      key={request.id}
+                      className="flex items-center justify-between border-b pb-4"
+                    >
+                      <div>
+                        <div className="font-medium">{request.user.name}</div>
+                        <div className="text-sm text-gray-500">
+                          {request.reason}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {format(
+                            new Date(request.requestedAt),
+                            "MMM dd, yyyy",
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge
+                          variant={
+                            request.status === "GIVEN"
+                              ? "default"
+                              : request.status === "CANCELLED"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                        >
+                          {request.status}
+                        </Badge>
+                        <div className="mt-1 text-sm text-gray-500">
+                          {request.medicines.length} item(s)
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Regular display content */}
+        <Card className="max-h-[600px] overflow-scroll rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
           <CardHeader>
             <CardTitle>Medicine Inventory</CardTitle>
           </CardHeader>
@@ -552,7 +890,9 @@ const MedicineReportsPage = () => {
                       <TableHead>Medicine</TableHead>
                       <TableHead>Brand</TableHead>
                       <TableHead>Type</TableHead>
+                      <TableHead>Category</TableHead>
                       <TableHead>Stock</TableHead>
+                      <TableHead>Expiry</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -572,6 +912,7 @@ const MedicineReportsPage = () => {
                         <TableCell>
                           <Badge variant="outline">{medicine.type}</Badge>
                         </TableCell>
+                        <TableCell>{medicine.category}</TableCell>
                         <TableCell>
                           <span
                             className={cn(
@@ -585,6 +926,14 @@ const MedicineReportsPage = () => {
                           >
                             {medicine.stock}
                           </span>
+                        </TableCell>
+                        <TableCell>
+                          {medicine.expiryDate
+                            ? format(
+                                new Date(medicine.expiryDate),
+                                "MMM dd, yyyy",
+                              )
+                            : "N/A"}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -611,15 +960,13 @@ const MedicineReportsPage = () => {
             )}
           </CardContent>
         </Card>
-
-        {/* Recent Requests */}
-        <Card className="rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
+        <Card className="max-h-[600px] overflow-scroll rounded-lg border-none border-gray-300 shadow-md drop-shadow-md">
           <CardHeader>
-            <CardTitle>Recent Medicine Requests</CardTitle>
+            <CardTitle>All Medicine Requests</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="">
             <div className="space-y-4">
-              {requestsData?.slice(0, 5).map((request) => (
+              {requestsData?.map((request) => (
                 <div
                   key={request.id}
                   className="flex items-center justify-between border-b pb-4"
@@ -655,7 +1002,6 @@ const MedicineReportsPage = () => {
           </CardContent>
         </Card>
 
-        {/* Request Medicine Dialog */}
         <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -696,7 +1042,7 @@ const MedicineReportsPage = () => {
                 <Button type="submit" disabled={requestMutation.isPending}>
                   {requestMutation.isPending ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
                       Submitting...
                     </>
                   ) : (

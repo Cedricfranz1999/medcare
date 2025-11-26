@@ -3,7 +3,7 @@ import { prisma } from "~/lib/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const resolvedParams = await params;
@@ -12,14 +12,14 @@ export async function GET(
     if (isNaN(medicineId)) {
       return NextResponse.json(
         { error: "Invalid medicine ID" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Get medicine with categories
     const medicine = await prisma.medicine.findUnique({
       where: {
-        id: medicineId
+        id: medicineId,
       },
       include: {
         categories: {
@@ -27,18 +27,18 @@ export async function GET(
             category: {
               select: {
                 id: true,
-                name: true
-              }
-            }
-          }
-        }
-      }
+                name: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!medicine) {
       return NextResponse.json(
         { error: "Medicine not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -57,22 +57,21 @@ export async function GET(
       expiryDate: medicine.expiryDate,
       createdAt: medicine.createdAt,
       updatedAt: medicine.updatedAt,
-      categories: medicine.categories.map(cat => ({
+      categories: medicine.categories.map((cat) => ({
         id: cat.category.id,
-        name: cat.category.name
-      }))
+        name: cat.category.name,
+      })),
     };
 
     return NextResponse.json({
-      medicine: medicineWithCategories
+      medicine: medicineWithCategories,
     });
-
   } catch (error) {
     console.error("Medicine details error:", error);
-    
+
     return NextResponse.json(
       { error: "Failed to fetch medicine details" },
-      { status: 500 }
+      { status: 500 },
     );
   }
-} 
+}
