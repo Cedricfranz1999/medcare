@@ -6,7 +6,7 @@ import { z } from "zod";
 const addToCartSchema = z.object({
   userId: z.number().min(1, "User ID is required"),
   medicineId: z.number().min(1, "Medicine ID is required"),
-  quantity: z.number().min(1, "Quantity must be at least 1"),
+  // quantity: z.number().min(1, "Quantity must be at least 1"),
 });
 
 export async function POST(request: NextRequest) {
@@ -40,16 +40,16 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    if (medicine.stock < validatedData.quantity) {
-      return NextResponse.json(
-        { 
-          error: "Insufficient stock", 
-          availableStock: medicine.stock,
-          requestedQuantity: validatedData.quantity
-        },
-        { status: 400 }
-      );
-    }
+    // if (medicine.stock < validatedData.quantity) {
+    //   return NextResponse.json(
+    //     { 
+    //       error: "Insufficient stock", 
+    //       availableStock: medicine.stock,
+    //       requestedQuantity: validatedData.quantity
+    //     },
+    //     { status: 400 }
+    //   );
+    // }
     
     // Check if item already exists in cart
     const existingCartItem = await prisma.medicineCart.findFirst({
@@ -63,26 +63,26 @@ export async function POST(request: NextRequest) {
     
     if (existingCartItem) {
       // Update existing cart item
-      const newQuantity = existingCartItem.quantity + validatedData.quantity;
+      // const newQuantity = existingCartItem.quantity + validatedData.quantity;
       
       // Check if new total quantity exceeds stock
-      if (medicine.stock < newQuantity) {
-        return NextResponse.json(
-          { 
-            error: "Insufficient stock for total quantity", 
-            availableStock: medicine.stock,
-            currentQuantity: existingCartItem.quantity,
-            requestedQuantity: validatedData.quantity,
-            totalQuantity: newQuantity
-          },
-          { status: 400 }
-        );
-      }
+      // if (medicine.stock < newQuantity) {
+      //   return NextResponse.json(
+      //     { 
+      //       error: "Insufficient stock for total quantity", 
+      //       availableStock: medicine.stock,
+      //       currentQuantity: existingCartItem.quantity,
+      //       requestedQuantity: validatedData.quantity,
+      //       totalQuantity: newQuantity
+      //     },
+      //     { status: 400 }
+      //   );
+      // }
       
       cartItem = await prisma.medicineCart.update({
         where: { id: existingCartItem.id },
         data: {
-          quantity: newQuantity,
+          quantity: 0,
           updatedAt: new Date(),
         },
         include: {
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         data: {
           userId: validatedData.userId,
           medicineId: validatedData.medicineId,
-          quantity: validatedData.quantity,
+          quantity: 0,
         },
         include: {
           medicine: {
