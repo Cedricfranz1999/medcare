@@ -97,8 +97,8 @@ export const medicineRequestsRouter = createTRPCRouter({
           updatedAt: new Date(),
         };
 
-        // If status is being changed to APPROVED, deduct stock
-        if (input.status === "APPROVED" && request.status !== "APPROVED") {
+        // If status is being changed to GIVEN, deduct stock
+        if (input.status === "GIVEN" && request.status !== "GIVEN") {
           // Check if all medicines have sufficient stock
           for (const item of request.medicines) {
             if (item.medicine.stock < item.quantity) {
@@ -120,14 +120,18 @@ export const medicineRequestsRouter = createTRPCRouter({
             });
           }
 
-          data.approvedAt = new Date();
-        } else if (input.status === "GIVEN") {
           data.givenAt = new Date();
-        } else if (input.status === "CANCELLED") {
+        } 
+        // If status is being changed to APPROVED, just update the timestamp
+        else if (input.status === "APPROVED") {
+          data.approvedAt = new Date();
+        } 
+        // If status is being changed to CANCELLED
+        else if (input.status === "CANCELLED") {
           data.cancelledReason = input.cancelledReason;
           
-          // If request was previously APPROVED, restore stock
-          if (request.status === "APPROVED") {
+          // If request was previously GIVEN, restore stock
+          if (request.status === "GIVEN") {
             for (const item of request.medicines) {
               await tx.medicine.update({
                 where: { id: item.medicineId },

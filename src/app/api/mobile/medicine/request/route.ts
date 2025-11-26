@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
             userId: request.userId,
             medicineId: requestItem.medicineId,
             medicineName: medicine.name,
-            requestedQuantity: requestItem.quantity,
+            requestedQuantity:0,
             availableStock: medicine.stock,
           });
         }
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
               data: {
                 requestId: medicineRequest.id,
                 medicineId: item.medicineId,
-                quantity: item.quantity,
+                quantity: 0,
               },
               include: {
                 medicine: {
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
         medicines: result.items.map(item => ({
           id: item.id,
           medicineId: item.medicineId,
-          quantity: item.quantity,
+          quantity: 0,
           medicine: item.medicine,
         })),
       })),

@@ -114,22 +114,21 @@ export default function MedicineRequestsPage() {
   const [editedQuantities, setEditedQuantities] = useState<{[key: number]: number}>({});
   const pageSize = 10;
 
-const { data, isLoading, refetch } = api.medicineReqeust.getAll.useQuery(
-  {
-    skip: (page - 1) * pageSize,
-    take: pageSize,
-    search,
-    status:
-      statusFilter === "all"
-        ? undefined
-        : (statusFilter as "REQUESTED" | "GIVEN" | "CANCELLED" | "APPROVED"),
-  },
-  {
-    refetchInterval: 5000, 
-    refetchOnWindowFocus: false, 
-  }
-);
-
+  const { data, isLoading, refetch } = api.medicineReqeust.getAll.useQuery(
+    {
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      search,
+      status:
+        statusFilter === "all"
+          ? undefined
+          : (statusFilter as "REQUESTED" | "GIVEN" | "CANCELLED" | "APPROVED"),
+    },
+    {
+      refetchInterval: 5000, 
+      refetchOnWindowFocus: false, 
+    }
+  );
 
   const updateStatus = api.medicineReqeust.updateStatus.useMutation({
     onSuccess: () => {
@@ -333,7 +332,16 @@ const { data, isLoading, refetch } = api.medicineReqeust.getAll.useQuery(
                     Edit Quantities
                   </DropdownMenuItem>
                 )}
-         
+        
+                {request.status !== "GIVEN" && (
+                  <DropdownMenuItem
+                    onClick={() => handleStatusChange(request, "GIVEN")}
+                    className="text-emerald-600 focus:text-emerald-600"
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Mark as Given
+                  </DropdownMenuItem>
+                )}
                 {request.status !== "APPROVED" && (
                   <DropdownMenuItem
                     onClick={() => handleStatusChange(request, "APPROVED")}
@@ -696,7 +704,7 @@ const { data, isLoading, refetch } = api.medicineReqeust.getAll.useQuery(
                                       Edit Quantities
                                     </DropdownMenuItem>
                                   )}
-                                  {/* {request.status !== "GIVEN" && (
+                                  {request.status !== "GIVEN" && (
                                     <DropdownMenuItem
                                       onClick={() => handleStatusChange(request, "GIVEN")}
                                       className="text-emerald-600 focus:text-emerald-600"
@@ -704,7 +712,7 @@ const { data, isLoading, refetch } = api.medicineReqeust.getAll.useQuery(
                                       <CheckCircle className="mr-2 h-4 w-4" />
                                       Mark as Given
                                     </DropdownMenuItem>
-                                  )} */}
+                                  )}
                                   {request.status !== "APPROVED" && (
                                     <DropdownMenuItem
                                       onClick={() => handleStatusChange(request, "APPROVED")}
