@@ -8,7 +8,6 @@ const medicineRequestSchema = z.object({
   reason: z.string().min(1, "Reason is required"),
   medicines: z.array(z.object({
     medicineId: z.number().min(1, "Medicine ID is required"),
-    quantity: z.number().optional(),
   })).min(1, "At least one medicine is required").max(20, "Maximum 20 medicines allowed per request"),
 });
 
@@ -90,12 +89,12 @@ export async function POST(request: NextRequest) {
     // for (const request of requests) {
     //   for (const requestItem of request.medicines) {
     //     const medicine = medicines.find(m => m.id === requestItem.medicineId);
-    //     if (medicine && medicine.stock < requestItem.quantity) {
+    //     if (medicine && medicine.stock ) {
     //       stockErrors.push({
     //         userId: request.userId,
     //         medicineId: requestItem.medicineId,
     //         medicineName: medicine.name,
-    //         requestedQuantity: requestItem.quantity,
+    //         requestedQuantity:0,
     //         availableStock: medicine.stock,
     //       });
     //     }
@@ -133,7 +132,7 @@ export async function POST(request: NextRequest) {
               data: {
                 requestId: medicineRequest.id,
                 medicineId: item.medicineId,
-                quantity: item.quantity ?? 0,
+                quantity: 0,
               },
               include: {
                 medicine: {
@@ -184,7 +183,7 @@ export async function POST(request: NextRequest) {
         medicines: result.items.map(item => ({
           id: item.id,
           medicineId: item.medicineId,
-          quantity: item.quantity,
+          quantity: 0,
           medicine: item.medicine,
         })),
       })),
