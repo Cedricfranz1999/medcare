@@ -8,7 +8,6 @@ const medicineRequestSchema = z.object({
   reason: z.string().min(1, "Reason is required"),
   medicines: z.array(z.object({
     medicineId: z.number().min(1, "Medicine ID is required"),
-    quantity: z.number().min(1, "Quantity must be at least 1"),
   })).min(1, "At least one medicine is required").max(20, "Maximum 20 medicines allowed per request"),
 });
 
@@ -90,7 +89,7 @@ export async function POST(request: NextRequest) {
     for (const request of requests) {
       for (const requestItem of request.medicines) {
         const medicine = medicines.find(m => m.id === requestItem.medicineId);
-        if (medicine && medicine.stock < requestItem.quantity) {
+        if (medicine && medicine.stock ) {
           stockErrors.push({
             userId: request.userId,
             medicineId: requestItem.medicineId,
